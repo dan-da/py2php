@@ -1,0 +1,27 @@
+#!/usr/bin/env php
+<?php
+
+$files = glob('*.py');
+
+if( count( $argv ) > 1) {
+    $files = array_slice( $argv, 1);
+}
+
+foreach( $files as $file ) {
+    $file_php = pathinfo($file, PATHINFO_FILENAME) . '.php';
+    
+    $cmd = sprintf( '%s/pyphp %s > %s', dirname(__FILE__), $file, $file_php);
+    mexec($cmd);
+    
+    $file_php_tmp = $file_php . ".tmp";
+    $cmd = sprintf( 'php_beautifier %s %s && mv %s %s', $file_php, $file_php_tmp, $file_php_tmp, $file_php);
+    mexec( $cmd );
+}
+
+function mexec( $cmd ) {
+    echo sprintf( "running [ %s ]\n", $cmd );
+    passthru( $cmd, $rc );
+    if( $rc ) {
+        die( "failed!\n");
+    }
+}
