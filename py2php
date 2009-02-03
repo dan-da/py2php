@@ -275,6 +275,10 @@ class Translator:
             elif v.node.name in self.top_level_classes:
                 call_name = "new " + v.node.name
             elif self.imported_classes.has_key(v.node.name):
+                # BUG: imported_classes may contain imported function names
+                # also.  But python AST doesn't seem to provide any way to
+                # distinguish between a class and a function when importing
+                # or when calling.  :-(
                 call_name = "new " + v.node.name
             elif v.node.name == "callable":
                 call_name = "is_function"
