@@ -10,7 +10,7 @@ if( count( $argv ) > 1) {
 foreach( $files as $file ) {
     $file_php = pathinfo($file, PATHINFO_FILENAME) . '.php';
     
-    $cmd = sprintf( '%s/pyphp %s > %s', dirname(__FILE__), $file, $file_php);
+    $cmd = sprintf( '%s/py2php %s > %s', dirname(__FILE__), $file, $file_php);
     mexec($cmd);
     
     $file_php_tmp = $file_php . ".tmp";
