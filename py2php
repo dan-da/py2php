@@ -132,6 +132,8 @@ class Translator:
                         default_value = self._name(default_node)
                     elif isinstance(default_node, ast.UnarySub):
                         default_value = self._unarysub(default_node, current_klass)
+                    elif isinstance(default_node, ast.Bitor):
+                        default_value = self._bitor(default_node, current_klass)
                     else:
                         raise TranslationError("unsupported type (in _method)", default_node)
                     arg_list.append( argname + "=" + default_value )
@@ -245,6 +247,8 @@ class Translator:
             print >>self.output, "/**"
             for line in lines:
                 line = line.lstrip()
+                if( line.startswith( '* ' ) ):
+                    line = line[2:]
                 print >>self.output, " * " + line
             print >>self.output, " */"
         
@@ -291,7 +295,7 @@ class Translator:
             elif v.node.name == "getattr":
                 call_name = "pyjslib_getattr"
             elif v.node.name == "hasattr":
-                call_name = "pyjslib_hasattr"
+                call_name = "method_exists"
             elif v.node.name == "int":
                 call_name = "pyjslib_int"
             elif v.node.name == "str":
@@ -333,6 +337,10 @@ class Translator:
                 is_append = True
             if call_name.endswith( "__construct"):
                 is_constructor = True
+
+        elif isinstance(v.node, ast.Subscript):
+            call_name = self._subscript(v.node, current_klass)
+            call_args = []
 
         else:
             raise TranslationError("unsupported type (in _callfunc)", v.node)
@@ -397,7 +405,7 @@ class Translator:
         elif isinstance(v.expr, ast.Getattr):
             return self._getattr(v.expr) + "->" + attr_name
         elif isinstance(v.expr, ast.Subscript):
-            return self._subscript(v.expr, attr_name )
+            return self._subscript(v.expr, attr_name ) + "->" + attr_name
         elif isinstance(v.expr, ast.CallFunc):
             return self._callfunc(v.expr, attr_name )
         else:
@@ -664,8 +672,14 @@ class Translator:
            self._print(node, current_klass)
         elif isinstance(node, ast.Print):
            self._print(node, current_klass)
+        elif isinstance(node, ast.Raise):
+           self._raise(node, current_klass)
         else:
             raise TranslationError("unsupported type (in _stmt)", node)
+    
+    def _raise(self, node, current_klass):
+        print >>self.output, "    throw new " + self.expr( node.expr1, current_klass ) + ";"
+        
     
     def _augassign(self, node, current_klass):
         v = node.node
@@ -735,7 +749,7 @@ class Translator:
                     raise TranslationError("must have one sub (in _assign)", v)
                 idx = self.expr(v.subs[0], current_klass)
                 value = self.expr(node.expr, current_klass)
-                print >>self.output, "    " + obj + ".__setitem__(" + idx + ", " + value + ");"
+                print >>self.output, "    " + obj + "[" + idx + "] = " + value + ";"
                 return
             else:
                 raise TranslationError("unsupported flag (in _assign)", v)
@@ -813,6 +827,7 @@ class Translator:
             if node.modname == 'pyjamas':
                 self.imported_modules.add(name[0])
             elif node.modname[:8] == 'pyjamas.':
+                print >>self.output, "require_once( '" + node.modname[8:] + ".php');" 
                 self.imported_classes[name[0]] = node.modname[8:]
             else:
                 print >>self.output, "require_once( '" + node.modname + ".php');" 
@@ -882,6 +897,8 @@ class Translator:
             list_expr = self._getattr(node.list)
         elif isinstance(node.list, ast.CallFunc):
             list_expr = self._callfunc(node.list, current_klass)
+        elif isinstance(node.list, ast.Subscript):
+            list_expr = self._subscript(node.list, current_klass)
         else:
             raise TranslationError("unsupported type (in _for)", node.list)
         
