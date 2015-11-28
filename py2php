@@ -712,7 +712,7 @@ class Translator:
         if isinstance(v, ast.Getattr):
             lhs = self._getattr(v)
         else:
-            lhs = self._name(node.node)
+            lhs = self.expr(node.node, current_klass)
         #op = '.='
         #if isinstance(node.expr, ast.Name):
         #    op = node.op
