@@ -1,0 +1,22 @@
+#!/usr/bin/php
+<?php
+
+$test_file = $argv[1];
+$php_file = $test_file . '.php';
+
+echo "$test_file --> $php_file.  generating...\n";
+$prog = dirname(__FILE__) . '/../py2php';
+
+$cmd = sprintf( '%s %s > %s', escapeshellarg( $prog ), escapeshellarg( $test_file ), escapeshellarg($php_file) );
+my_exec( $cmd );
+
+echo "done!\n";
+
+function my_exec( $cmd ) {
+    passthru( $cmd, $rc );
+    if( $rc != 0 ) {
+        die( "command failed: $cmd\n");
+    }
+}
+
+?>

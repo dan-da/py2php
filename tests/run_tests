@@ -1,0 +1,34 @@
+#!/usr/bin/php
+<?php
+
+$files = glob('*.py');
+foreach( $files as $file) {
+    $phpfile = $file . '.php';
+    echo "Testing $file and $phpfile... ";
+    if( !file_exists( $phpfile ) ) {
+        echo "$phpfile not found!";
+    }
+
+    $pyout = my_exec( sprintf( "python %s 2> /dev/null", escapeshellarg( $file ) ) );
+    $phpout = my_exec( sprintf( "php %s 2> /dev/null", escapeshellarg( $phpfile ) ) );
+    
+    if( $pyout == $phpout ) {
+        echo "Pass";
+    }
+    else {
+        echo "Fail";
+    }
+    echo "\n";
+}
+
+echo "\n";
+
+function my_exec( $cmd ) {
+    exec( $cmd, $output, $rc );
+    if( $rc != 0 ) {
+        die( "command failed with exit code $rc: $cmd\n");
+    }
+    return implode( "\n", $output );
+}
+
+?>

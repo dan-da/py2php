@@ -1,0 +1,17 @@
+#!/usr/bin/php
+<?php
+
+$files = glob('*.py');
+foreach( $files as $file) {
+    $cmd = sprintf( '`pwd`/gen_test %s', escapeshellarg( $file ));
+    my_exec( $cmd );
+}
+
+function my_exec( $cmd ) {
+    passthru( $cmd, $rc );
+    if( $rc != 0 ) {
+        die( "command failed: $cmd\n");
+    }
+}
+
+?>
