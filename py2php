@@ -751,11 +751,15 @@ class Translator:
                 op = "="
             else:
                 raise TranslationError("unsupported flag (in _assign)", v)
+
+        elif isinstance(v, ast.AssTuple):
+            lhs = self.ind() + self._asstuple(v, current_klass)
+            op = "="
     
         elif isinstance(v, ast.AssName):
             if top_level:
                 if current_klass:
-                    lhs = "" + current_klass.name + "::" + v.name
+                    lhs = self.ind() + current_klass.name + "::" + v.name
                 else:
                     self.top_level_vars.add(v.name)
                     lhs = self.ind() + self._name(v)
@@ -1054,9 +1058,15 @@ class Translator:
             value = self.expr(x[1], current_klass)
             items.append("[" + key + ", " + value + "]")
         return "array(" + ", ".join(items) + ")"
+    
+    def _asstuple(self, node, current_klass):
+        return "list(" + ", ".join([self._assname(x, current_klass) for x in node.nodes]) + ")"
+    
+    def _assname( self, node, current_klass):
+        return "$" + node.name        
 
     def _tuple(self, node, current_klass):
-        return "new pyjslib_Tuple([" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "])"
+        return "array(" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + ")"
 
     def _slice(self, node, current_klass):
         if node.flags == "OP_APPLY":
