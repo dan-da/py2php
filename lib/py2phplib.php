@@ -101,6 +101,9 @@ function pyjslib_printWorker($objs, $multi_arg, $depth=1) {
     else if( is_bool( $objs )) {
         $buf = $objs ? "True" : "False";
     }
+    else if( is_float( $objs )) {
+        $buf = (int)$objs;
+    }
     elseif( is_array( $objs )) {
         $buf = '[' . implode( ", ", $objs ) . ']';
     }
