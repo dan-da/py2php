@@ -7,4 +7,5 @@ $idx -= 1;
 $idx *= 4;
 $idx /= 3;
 $arr[$idx] += 1;
-pyjslib_printFunc(array( $idx, $arr[$idx] ), true);
+pyjslib_printFunc(array($idx, $arr[$idx]), true);
+
