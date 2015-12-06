@@ -15,6 +15,9 @@ from types import StringType
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# Note:  AST types are documented at:
+#  https://docs.python.org/2/library/compiler.html
+
 
 import compiler
 from compiler import ast
@@ -64,7 +67,6 @@ def strip_py(name):
 class Translator:
 
     def __init__(self, module_name, mod, output):
-    
         if module_name:
             self.module_prefix = ""
         else:
@@ -81,7 +83,8 @@ class Translator:
         self.eol = "\n"
         
         buf = ''
-        buf += "require_once('py2phplib.php');" + self.eol
+        if module_name != "eval":
+            buf += "require_once('py2phplib.php');" + self.eol
         
         for child in mod.node:
             if isinstance(child, ast.Function):
@@ -612,6 +615,20 @@ class Translator:
         buf += ");" + self.eol
         
         return buf
+
+    def _exec(self, node, current_klass):
+        output = cStringIO.StringIO()
+        code_in = node.expr.value
+        mod = compiler.parse(code_in)
+        t = Translator("eval", mod, output)
+        code_out = output.getvalue()
+        buf = self.ind() + "eval("
+        if code_out.find("'") == -1:
+            buf += "'" + code_out.strip() + "'"
+        else:
+            buf += " <<< 'PY2PHP_EVAL_END'\n" + code_out.strip() + "\nPY2PHP_EVAL_END\n"
+        buf += ");" + self.eol
+        return buf
     
     def classattr(self, node, current_klass):
         return self._assign(node, current_klass, True)
@@ -744,6 +761,8 @@ class Translator:
             buf += ''
         elif isinstance(node, ast.Function):
             buf += self._function(node, True)
+        elif isinstance(node, ast.Exec):
+            buf += self._exec(node, True)
         elif isinstance(node, ast.Printnl):
             buf += self._print(node, current_klass)
         elif isinstance(node, ast.Print):
