@@ -603,7 +603,15 @@ class Translator:
         buf += self.ind() + "}" + self.eol
         return buf
         
+
+    def _assert(self, node, current_klass):
+        buf = self.ind() + 'assert('
+        buf += self.expr( node.test, current_klass )
+        if node.fail:
+            buf += ", " + self.expr( node.fail, current_klass )
+        buf += ");" + self.eol
         
+        return buf
     
     def classattr(self, node, current_klass):
         return self._assign(node, current_klass, True)
@@ -706,6 +714,8 @@ class Translator:
         if isinstance(node, ast.Stmt):
             for n in node.nodes:
                 buf += self._stmt(n, current_klass)
+        elif isinstance(node, ast.Assert):
+            buf += self._assert(node, current_klass)
         elif isinstance(node, ast.Return):
             buf += self._return(node, current_klass)
         elif isinstance(node, ast.Break):
