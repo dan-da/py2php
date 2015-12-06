@@ -1244,9 +1244,14 @@ class Translator:
         return buf
 
     def _global(self, node, current_klass):
+        buf = self.ind() + 'global '
+        names = []
         for name in node.names:
             self.method_imported_globals.add(name)
-        return ''
+            names.append( "$" + name )
+        buf += ", ".join( names ) + ";" + self.eol
+            
+        return buf
 
     def expr(self, node, current_klass):
         #print "NODER: " + str(node)
