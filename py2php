@@ -767,6 +767,10 @@ class Translator:
             buf += self._print(node, current_klass)
         elif isinstance(node, ast.Print):
             buf += self._print(node, current_klass)
+        elif isinstance(node, ast.TryFinally):
+            buf += self._tryfinally(node, current_klass)
+        elif isinstance(node, ast.TryExcept):
+            buf += self._tryexcept(node, current_klass)            
         elif isinstance(node, ast.Raise):
             buf += self._raise(node, current_klass)
         elif isinstance(node, ast.Getattr):
@@ -777,8 +781,46 @@ class Translator:
         
     
     def _raise(self, node, current_klass):
-        return self.ind() + "throw new " + self.expr( node.expr1, current_klass ) + ";" + self.eol
+        return self.ind() + "throw new " + node.expr1.name + ";" + self.eol
+
+    def _tryexcept(self, node, current_klass):
+        buf = self.ind() + 'try {' + self.eol
+        self.depth += 1
+        buf += self._stmt( node.body, current_klass )
+        self.depth -= 1
+        buf += self.ind() + "}" + self.eol
         
+        for e in node.handlers:
+            buf += self.ind() + "catch("
+            if e[0].name:
+                buf += e[0].name
+            else:
+                buf += 'Exception'
+            buf += " $e) {" + self.eol
+#            self.depth += 1
+            buf += self.ind() + self._stmt(e[2], current_klass)
+#            self.depth -= 1
+            buf += self.ind() + "}" + self.eol
+            
+        if node.else_:
+            buf += "//" + self.ind() + "py2php: else block not supported in PHP." + self.eol
+            buf += "//" + self.ind() + "else {" + self.eol
+            self.depth += 1
+            buf += "//" + self._stmt( node.else_, current_klass )
+            self.depth -= 1
+            buf += "//" + self.ind() + "}" + self.eol
+            
+        return buf
+        
+
+    def _tryfinally(self, node, current_klass):
+        buf = self._tryexcept( node.body, current_klass )
+        buf += self.ind() + "finally {" + self.eol
+        self.depth += 1
+        buf += self._stmt( node.final, current_klass )
+        self.depth -= 1
+        buf += self.ind() + "}" + self.eol
+        return buf
     
     def _augassign(self, node, current_klass):
         v = node.node
