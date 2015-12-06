@@ -711,6 +711,8 @@ class Translator:
 
     def _stmt(self, node, current_klass):
         buf = ''
+#        print node
+#        print_r(node)
         if isinstance(node, ast.Stmt):
             for n in node.nodes:
                 buf += self._stmt(n, current_klass)
@@ -751,7 +753,7 @@ class Translator:
         elif isinstance(node, ast.Getattr):
             buf += self._getattr(node)
         else:
-           buf += self.ind() + self.expr( node, current_klass) + self.eol
+            buf += self.ind() + self.expr( node, current_klass) + ";" + self.eol
         return buf
         
     
@@ -854,9 +856,9 @@ class Translator:
         if isinstance(node.expr, ast.CallFunc):
             if isinstance(node.expr.node, ast.Name) and node.expr.node.name == NATIVE_JS_FUNC_NAME:
                 if len(node.expr.args) != 1:
-                    raise TranslationError("native javascript function %s must have one arg" % NATIVE_JS_FUNC_NAME, node.expr)
+                    raise TranslationError("native php function %s must have one arg" % NATIVE_JS_FUNC_NAME, node.expr)
                 if not isinstance(node.expr.args[0], ast.Const):
-                    raise TranslationError("native javascript function %s must have constant arg" % NATIVE_JS_FUNC_NAME, node.expr)
+                    raise TranslationError("native php function %s must have constant arg" % NATIVE_JS_FUNC_NAME, node.expr)
                 buf += self.ind() + node.expr.args[0].value + self.eol
             else:
                 expr = self._callfunc(node.expr, current_klass)
@@ -867,7 +869,6 @@ class Translator:
         else:
             raise TranslationError("unsupported type (in _discard)", node.expr)
         return buf
-    
     
     def _if(self, node, current_klass):
         buf = ''
@@ -1102,7 +1103,7 @@ class Translator:
     def _subscript_stmt(self, node, current_klass):
         buf = ''
         if node.flags == "OP_DELETE":
-            buf += self.ind() + self.expr(node.expr, current_klass) + ".__delitem__(" + self.expr(node.subs[0], current_klass) + ");" + self.eol
+            buf += self.ind() + "unset(" + self.expr(node.expr, current_klass) + "[" + self.expr(node.subs[0], current_klass) + "]);" + self.eol
         else:
             raise TranslationError("unsupported flag (in _subscript)", node)
         return buf
@@ -1131,7 +1132,14 @@ class Translator:
         return "list(" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + ")"
     
     def _assname( self, node, current_klass):
-        return "$" + node.name        
+        buf = ''
+        var = "$" + node.name
+        if node.flags == 'OP_DELETE':
+            buf = "unset(" + var + ")"
+        else:
+            buf = var
+        return buf
+            
 
     def _assattr( self, node, current_klass):
         return self.expr(node.expr, current_klass) + "->" + node.attrname
