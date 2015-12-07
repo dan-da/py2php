@@ -102,9 +102,9 @@ class Translator:
                 if importName == '__pyjamas__': # special module to help make pyjamas modules loadable in the python interpreter
                     pass
                 elif importName.endswith('.php'):
-                   buf += self.imported_js.add(importName)
+                   self.imported_js.add(importName)
                 else:
-                   buf += self.imported_modules.add(strip_py(importName))
+                   self.imported_modules.add(strip_py(importName))
                 buf += self._import(child)
             elif isinstance(child, ast.From):
                 if child.modname == '__pyjamas__': # special module to help make pyjamas modules loadable in the python interpreter
