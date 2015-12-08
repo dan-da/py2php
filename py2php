@@ -578,7 +578,7 @@ class Translator:
             else:
                 raise TranslationError("unsupported type (in _class)", base)
 
-        if len(bases) > 0:
+        if len(bases) == 1:
             base_class = bases[0]
             current_klass.set_base(base_class)
         
@@ -588,15 +588,14 @@ class Translator:
         if base_class != None:
             line += " extends " + base_class
         line += " {" + self.eol
-        
-        if len(bases) > 1:
-            buf += self.ind() + "// py2php : PHP only supports single inheritance." + self.eol
-            buf += self.ind() + "// py2php : The python class inherited from:" + self.eol
-            for base in bases:
-                buf += self.ind() + "//      " + base + self.eol
-        
+
         buf += line
         self.depth += 1
+        
+        if len(bases) > 1:
+            buf += self.ind() + "use " + ", ".join(bases) + " {" + self.eol
+            buf += self.ind() + "}" + self.eol
+        
 
         for child in node.code:
             if isinstance(child, ast.Pass):
@@ -1229,6 +1228,7 @@ class Translator:
             if len(node.subs) == 1:
                 return self.expr(node.expr, current_klass) + "[" + self.expr(node.subs[0], current_klass) + "]"
             else:
+                print_r( node )
                 raise TranslationError("must have one sub (in _subscript)", node)
         else:
             raise TranslationError("unsupported flag (in _subscript)", node)
