@@ -563,31 +563,38 @@ class Translator:
                 if child.name == "__init__":
                     child.name = "__construct"
                     init_method = child
-                
 
-        if len(node.bases) == 0:
-            base_class = None
-        elif len(node.bases) == 1:
-            if isinstance(node.bases[0], ast.Name):
-                if self.imported_classes.has_key(node.bases[0].name):
-                    base_class = node.bases[0].name
+        bases = []
+        base_class = None
+
+        for base in node.bases:
+            if isinstance(base, ast.Name):
+                if self.imported_classes.has_key(base.name):
+                    bases.append( base.name )
                 else:
-                    base_class = node.bases[0].name
-            elif isinstance(node.bases[0], ast.Getattr):
-                base_class = node.bases[0].attrname
+                    bases.append( base.name )
+            elif isinstance(base, ast.Getattr):
+                bases.append( base.attrname )
             else:
-                raise TranslationError("unsupported type (in _class)", node.bases[0])
+                raise TranslationError("unsupported type (in _class)", base)
 
+        if len(bases) > 0:
+            base_class = bases[0]
             current_klass.set_base(base_class)
-        else:
-            raise TranslationError("more than one base (in _class)", node)
-
+        
         buf += self._doc( node.doc )
         
         line = self.ind() + "class " + class_name
         if base_class != None:
             line += " extends " + base_class
         line += " {" + self.eol
+        
+        if len(bases) > 1:
+            buf += self.ind() + "// py2php : PHP only supports single inheritance." + self.eol
+            buf += self.ind() + "// py2php : The python class inherited from:" + self.eol
+            for base in bases:
+                buf += self.ind() + "//      " + base + self.eol
+        
         buf += line
         self.depth += 1
 
