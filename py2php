@@ -148,6 +148,8 @@ class Translator:
                         default_value = self._unarysub(default_node, current_klass)
                     elif isinstance(default_node, ast.Bitor):
                         default_value = self._bitor(default_node, current_klass)
+                    elif isinstance(default_node, ast.Getattr):
+                        default_value = self._getattr( default_node )
                     else:
                         raise TranslationError("unsupported type (in _method)", default_node)
                     arg_list.append( argname + "=" + default_value )
@@ -182,7 +184,7 @@ class Translator:
     def _varargs_handler(self, node, varargname, arg_names, current_klass):
         
         buf = ''
-        buf += self.ind(), varargname, '= array();' + self.eol
+        buf += self.ind() + varargname + '= array();' + self.eol
         buf += self.ind() + '$arg_list = func_get_args();'  + self.eol
         buf += self.ind() +  'for ($__va_arg = ' + str(len(arg_names)) + '; $__va_arg < func_num_args(); $__va_arg++) {'  + self.eol
         self.depth += 1
@@ -445,10 +447,11 @@ class Translator:
         if isinstance(v.expr, ast.Name):
             obj = self._name(v.expr, return_none_for_module=True)
             if obj == None and v.expr.name in self.imported_modules:
-                return "__"+v.expr.name+'_'+attr_name+'.prototype.__class__'
+                return v.expr.name+'::'+ "$" + attr_name
             scope = "->"
             if v.expr.name in self.top_level_classes or v.expr.name in self.imported_classes:
-                scope = "::"            
+                scope = "::"
+                attr_name = "$" + attr_name
 #            if( v.expr.name == 'self' ):
 #                scope = "->"
             return obj + scope + attr_name
@@ -494,14 +497,14 @@ class Translator:
         elif self.imported_classes.has_key(obj):
             #attr_str = ""
             #if attr_name != "__init__":
-            call_name = obj + "::" + attr_name
+            call_name = obj + "::" + "$" + attr_name
         elif obj in self.imported_modules:
             # PHP has no concept of modules.
             # This could be using PHP namespaces, in PHP6.
             # For now we just pretend the module is a class.  Often it should be anyway.
-            call_name = obj + "::" + attr_name
+            call_name = obj + "::" + "$" + attr_name
         elif obj[0] == obj[0].upper():
-            call_name = obj + "::" + attr_name
+            call_name = obj + "::" + "$" + attr_name
         else:
             call_name = self._name(v) + "->" + attr_name
 
@@ -600,6 +603,8 @@ class Translator:
                 lines = str(child.expr.value).strip().split("\n")
                 for line in lines:
                     buf += self.ind() + "// " + line.lstrip() + self.eol
+            elif isinstance(child, ast.Class):
+                buf += self._class(child)
             else:
                 raise TranslationError("unsupported type (in _class)", child)
         self.depth -= 1
@@ -645,10 +650,11 @@ class Translator:
         staticmethod = False
         if node.decorators:
             for d in node.decorators:
-                if d.name == "classmethod":
-                    classmethod = True
-                elif d.name == "staticmethod":
-                    staticmethod = True
+                if hasattr( d, 'name'):
+                    if d.name == "classmethod":
+                        classmethod = True
+                    elif d.name == "staticmethod":
+                        staticmethod = True
 
         buf += self._function(node, True)
         return buf
@@ -728,8 +734,6 @@ class Translator:
 
     def _stmt(self, node, current_klass):
         buf = ''
-#        print node
-#        print_r(node)
         if isinstance(node, ast.Stmt):
             for n in node.nodes:
                 buf += self._stmt(n, current_klass)
@@ -775,13 +779,25 @@ class Translator:
             buf += self._raise(node, current_klass)
         elif isinstance(node, ast.Getattr):
             buf += self._getattr(node)
+        elif isinstance(node, ast.Import):
+            buf += self._import(node)
+        elif isinstance(node, ast.With):
+            buf += self._with(node, current_klass)
+            
         else:
             buf += self.ind() + self.expr( node, current_klass) + ";" + self.eol
         return buf
         
     
     def _raise(self, node, current_klass):
-        return self.ind() + "throw new " + node.expr1.name + ";" + self.eol
+        name = ''
+        if isinstance(node.expr1, ast.Name):
+            name = node.expr1.name
+        elif node.expr1 == None:
+            name = "Exception('py2php: python code would raise pre-existing exception here.')"
+        else:
+            name = self.expr( node.expr1, current_klass )
+        return self.ind() + "throw new " + name + ";" + self.eol
 
     def _tryexcept(self, node, current_klass):
         buf = self.ind() + 'try {' + self.eol
@@ -792,14 +808,14 @@ class Translator:
         
         for e in node.handlers:
             buf += self.ind() + "catch("
-            if e[0].name:
+            if hasattr(e[0], 'name') and e[0].name:
                 buf += e[0].name
             else:
                 buf += 'Exception'
             buf += " $e) {" + self.eol
-#            self.depth += 1
+            self.depth += 1
             buf += self.ind() + self._stmt(e[2], current_klass)
-#            self.depth -= 1
+            self.depth -= 1
             buf += self.ind() + "}" + self.eol
             
         if node.else_:
@@ -814,7 +830,19 @@ class Translator:
         
 
     def _tryfinally(self, node, current_klass):
-        buf = self._tryexcept( node.body, current_klass )
+        
+        buf = ''
+        if( isinstance( node.body, ast.TryExcept ) ):
+            buf += self._tryexcept( node.body, current_klass )
+        elif( isinstance( node.body, ast.Stmt ) ):
+            buf += self.ind() + "try {" + self.eol
+            self.depth += 1
+            buf += self._stmt( node.body, current_klass )
+            self.depth -= 1
+            buf += self.ind() + "}" + self.eol
+        else:
+            raise TranslationError("unexpected type (in _tryfinally)", node.body)
+        
         buf += self.ind() + "finally {" + self.eol
         self.depth += 1
         buf += self._stmt( node.final, current_klass )
@@ -875,7 +903,7 @@ class Translator:
         elif isinstance(v, ast.AssName):
             if top_level:
                 if current_klass:
-                    lhs = self.ind() + current_klass.name + "::" + v.name
+                    lhs = self.ind() + "public $" + v.name
                 else:
                     self.top_level_vars.add(v.name)
                     lhs = self.ind() + self._name(v)
@@ -896,7 +924,7 @@ class Translator:
                 idx = self.expr(v.subs[0], current_klass)
                 value = self.expr(node.expr, current_klass)
                 buf += self.ind() +  obj + "[" + idx + "] = " + value + ";" + self.eol
-                return
+                return buf
             else:
                 raise TranslationError("unsupported flag (in _assign)", v)
         else:
@@ -927,6 +955,8 @@ class Translator:
         elif isinstance(node.expr, ast.Const):
             if node.expr.value is not None: # Empty statements generate ignore None
                 buf += self.ind() + self._const(node.expr) + self.eol
+        elif isinstance(node.expr, ast.Yield):
+            buf += self._yield( node.expr, current_klass )
         else:
             raise TranslationError("unsupported type (in _discard)", node.expr)
         return buf
@@ -948,8 +978,7 @@ class Translator:
             consequence = node.else_
 
             buf += self._if_test(keyword, test, consequence, current_klass)
-        return buf
-            
+        return buf            
         
     def _if_test(self, keyword, test, consequence, current_klass):
         buf = ''
@@ -972,9 +1001,19 @@ class Translator:
         buf += self.ind() + "}" + self.eol
         return buf
 
+    def _ifexp(self, node, current_klass):
+        buf = self.expr( node.test, current_klass ) + " ? "
+        buf += self.expr( node.then, current_klass ) + " : "
+        buf += self.expr( node.else_, current_klass )
+        return buf
+
+    def _yield( self, node, current_klass):
+        buf = self.ind() + "// yield(py2php.FIXME.yield);" + self.eol
+        return buf
+
     def _import( self, node):
         importName = node.names[0][0]
-        return "require_once( '" + importName + ".php');" 
+        return self.ind() + "require_once( '" + importName + ".php');" + self.eol
 
     def _from(self, node):
         buf = ''
@@ -992,22 +1031,30 @@ class Translator:
 
     def _compare(self, node, current_klass):
         lhs = self.expr(node.expr, current_klass)
+        buf = "(" + lhs
+        
+        rhs_last = None
+        
+        for nodeop in node.ops:
+            op = nodeop[0]
+            rhs_node = nodeop[1]
+            rhs = self.expr(rhs_node, current_klass)
 
-        if len(node.ops) != 1:
-            raise TranslationError("only one ops supported (in _compare)", node)
+            if op == "in":
+                return "in_array(" + lhs + ", " + rhs + ")"
+            elif op == "not in":
+                return "!in_array(" + lhs + ", " + rhs + ")"
+            elif op == "is":
+                op = "=="
+            elif op == "is not":
+                op = "!="
+                
+            if rhs_last != None:
+                buf += " && (" + rhs_last
+            buf += " " + op + " " + rhs + ")"
+            rhs_last = rhs
 
-        op = node.ops[0][0]
-        rhs_node = node.ops[0][1]
-        rhs = self.expr(rhs_node, current_klass)
-
-        if op == "in":
-            return rhs + ".__contains__(" + lhs + ")"
-        elif op == "not in":
-            return "!" + rhs + ".__contains__(" + lhs + ")"
-        elif op == "is":
-            op = "=="
-           
-        return "(" + lhs + " " + op + " " + rhs + ")"
+        return buf
 
 
     def _not(self, node, current_klass):
@@ -1056,6 +1103,8 @@ class Translator:
             list_expr = self._callfunc(node.list, current_klass)
         elif isinstance(node.list, ast.Subscript):
             list_expr = self._subscript(node.list, current_klass)
+        elif isinstance(node.list, ast.List):
+            list_expr = self._list(node.list, current_klass)
         else:
             raise TranslationError("unsupported type (in _for)", node.list)
         
@@ -1094,6 +1143,7 @@ class Translator:
         elif isinstance(node.value, str):
 #            return "\"" + node.value.encode('string_escape') + "\""
             buf = node.value.replace( "'", "\\'" )
+            buf = buf.replace( "\r", "\\r" )
             return "'" + buf + "'"
         elif node.value is None:
             return "null"
@@ -1134,6 +1184,9 @@ class Translator:
     def _div(self, node, current_klass):
         return "(" + self.expr(node.left, current_klass) + " / " + self.expr(node.right, current_klass) + ")"
 
+    def _floordiv(self, node, current_klass):
+        return "floor(" + self.expr(node.left, current_klass) + " / " + self.expr(node.right, current_klass) + ")"
+
     def _mul(self, node, current_klass):
         return "(" + self.expr(node.left, current_klass) + " * " + self.expr(node.right, current_klass) + ")"
 
@@ -1151,6 +1204,18 @@ class Translator:
 
     def _bitor(self, node, current_klass):
         return " | ".join([self.expr(child, current_klass) for child in node.nodes])
+
+    def _bitxor(self, node, current_klass):
+        return " ^ ".join([self.expr(child, current_klass) for child in node.nodes])
+
+    def _power(self, node, current_klass):
+        return "pow(" + self.expr(node.left, current_klass) + ", " + self.expr(node.right, current_klass) + ")"
+
+    def _leftshift(self, node, current_klass):
+        return self.expr(node.left, current_klass) + " << " + self.expr(node.right, current_klass)
+
+    def _rightshift(self, node, current_klass):
+        return self.expr(node.left, current_klass) + " >> " + self.expr(node.right, current_klass)
 
     def _subscript(self, node, current_klass):
         if node.flags == "OP_APPLY":
@@ -1253,6 +1318,23 @@ class Translator:
             
         return buf
 
+    def _listcomp(self, node, current_klass):
+        buf = '/* py2php.fixme listcomp unsupported. */'
+        return buf
+
+    def _listcompfor(self, node, current_klass):
+        buf = '/* py2php.fixme listcompfor unsupported. */'
+        return buf
+
+    def _listcompif(self, node, current_klass):
+        buf = '/* py2php.fixme listcompif unsupported. */'
+        return buf
+
+    def _with(self, node, current_klass):
+        buf = '// py2php.fixme "with" unsupported.' + self.eol
+        return buf
+
+
     def expr(self, node, current_klass):
         #print "NODER: " + str(node)
         if isinstance(node, ast.Const):
@@ -1266,6 +1348,8 @@ class Translator:
             return self._sub(node, current_klass)
         elif isinstance(node, ast.Div):
             return self._div(node, current_klass)
+        elif isinstance(node, ast.FloorDiv):
+            return self._div(node, current_klass)        
         elif isinstance(node, ast.Mod):
             return self._mod(node, current_klass)
         elif isinstance(node, ast.UnarySub):
@@ -1282,6 +1366,14 @@ class Translator:
             return self._bitand(node, current_klass)
         elif isinstance(node, ast.Bitor):
             return self._bitor(node, current_klass)
+        elif isinstance(node, ast.Bitxor):
+            return self._bitxor(node, current_klass)
+        elif isinstance(node, ast.Power):
+            return self._power(node, current_klass)                
+        elif isinstance(node, ast.LeftShift):
+            return self._leftshift(node, current_klass)
+        elif isinstance(node, ast.RightShift):
+            return self._rightshift(node, current_klass)                
         elif isinstance(node, ast.Compare):
             return self._compare(node, current_klass)
         elif isinstance(node, ast.CallFunc):
@@ -1306,6 +1398,14 @@ class Translator:
             return self._slice(node, current_klass)
         elif isinstance(node, ast.Lambda):
             return self._lambda(node, current_klass)        
+        elif isinstance(node, ast.IfExp):
+            return self._ifexp(node, current_klass)        
+        elif isinstance(node, ast.ListComp):
+            return self._listcomp(node, current_klass)        
+        elif isinstance(node, ast.ListCompFor):
+            return self._listcompfor(node, current_klass)        
+        elif isinstance(node, ast.ListCompIf):
+            return self._listcompif(node, current_klass)        
         
         else:
             raise TranslationError("unsupported type (in expr)", node)

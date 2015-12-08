@@ -4,6 +4,10 @@ class ZeroDivisionException(Exception):
 class ValidationException(Exception):
     pass
 
+try:
+    print 'hi'
+except ZeroDivisionError:
+    pass
 
 def div(x,y):
     try:

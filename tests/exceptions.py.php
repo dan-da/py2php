@@ -4,6 +4,11 @@ class ZeroDivisionException extends Exception {
 }
 class ValidationException extends Exception {
 }
+try {
+    pyjslib_printFunc('hi');
+}
+catch(ZeroDivisionError $e) {
+    }
 function div($x,$y) {
     try {
         if (($x < 0) || ($y < 0)) {
@@ -15,10 +20,10 @@ function div($x,$y) {
         $result = ($x / $y);
     }
     catch(ZeroDivisionException $e) {
-        pyjslib_printFunc('division by zero!');
+                pyjslib_printFunc('division by zero!');
     }
     catch(ValidationException $e) {
-        pyjslib_printFunc('Values must be greater than 0!');
+                pyjslib_printFunc('Values must be greater than 0!');
     }
     finally {
         pyjslib_printFunc('executing finally clause');

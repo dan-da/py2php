@@ -105,7 +105,17 @@ function pyjslib_printWorker($objs, $multi_arg, $depth=1) {
         $buf = (int)$objs;
     }
     elseif( is_array( $objs )) {
-        $buf = '[' . implode( ", ", $objs ) . ']';
+        $buf = '[';
+        $cnt = 0;
+        foreach( $objs as $obj ) {
+            $val = pyjslib_printWorker($obj, false, $depth + 1);
+            if( $cnt ++ > 0 ) {
+                $buf .= ', ';
+            }
+            $buf .= $val;
+        }
+        $buf .= "]";
+//        $buf = '[' . implode( ", ", $objs ) . ']';
     }
     else {
         $buf = $objs;
