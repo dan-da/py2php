@@ -593,6 +593,10 @@ class Translator:
         self.depth += 1
         
         if len(bases) > 1:
+            buf += self.ind() + "/* py2php : PHP does not support multiple inheritance." + self.eol
+            buf += self.ind() + " * Consider defining the referenced classes as traits instead." + self.eol
+            buf += self.ind() + " * See: http://php.net/manual/en/language.oop5.traits.php" + self.eol
+            buf += self.ind() + " */" + self.eol
             buf += self.ind() + "use " + ", ".join(bases) + " {" + self.eol
             buf += self.ind() + "}" + self.eol
         
