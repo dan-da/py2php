@@ -150,6 +150,8 @@ class Translator:
                         default_value = self._bitor(default_node, current_klass)
                     elif isinstance(default_node, ast.Getattr):
                         default_value = self._getattr( default_node )
+                    elif isinstance(default_node, ast.CallFunc):
+                        default_value = self._callfunc( default_node, current_klass )
                     else:
                         raise TranslationError("unsupported type (in _method)", default_node)
                     arg_list.append( argname + "=" + default_value )
@@ -1115,6 +1117,8 @@ class Translator:
             list_expr = self._subscript(node.list, current_klass)
         elif isinstance(node.list, ast.List):
             list_expr = self._list(node.list, current_klass)
+        elif isinstance(node.list, ast.Slice):
+            list_expr = self._slice(node.list, current_klass)
         else:
             raise TranslationError("unsupported type (in _for)", node.list)
         
@@ -1292,6 +1296,9 @@ class Translator:
                 lower = self.expr(node.lower, current_klass)
             if node.upper != None:
                 upper = self.expr(node.upper, current_klass)
+                if  node.lower != None:
+                     upper = upper + " - " + lower
+                
             return  "array_slice(" + self.expr(node.expr, current_klass) + ", " + lower + ", " + upper + ")"
         else:
             raise TranslationError("unsupported flag (in _slice)", node)
