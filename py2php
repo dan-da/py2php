@@ -1018,7 +1018,7 @@ class Translator:
         return buf
 
     def _yield( self, node, current_klass):
-        buf = self.ind() + "// yield(py2php.FIXME.yield);" + self.eol
+        buf = self.ind() + "yield(" + self.expr(node.value, current_klass) + ");" + self.eol
         return buf
 
     def _import( self, node):
