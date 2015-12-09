@@ -140,20 +140,9 @@ class Translator:
                 argname = '$' + argname
                 if cnt >= default_pos:
                     default_node = node.defaults[cnt-default_pos]
-                    if isinstance(default_node, ast.Const):
-                        default_value = self._const(default_node)
-                    elif isinstance(default_node, ast.Name):
-                        default_value = self._name(default_node)
-                    elif isinstance(default_node, ast.UnarySub):
-                        default_value = self._unarysub(default_node, current_klass)
-                    elif isinstance(default_node, ast.Bitor):
-                        default_value = self._bitor(default_node, current_klass)
-                    elif isinstance(default_node, ast.Getattr):
-                        default_value = self._getattr( default_node )
-                    elif isinstance(default_node, ast.CallFunc):
-                        default_value = self._callfunc( default_node, current_klass )
-                    else:
-                        raise TranslationError("unsupported type (in _method)", default_node)
+                    
+                    default_value = self.expr( default_node, current_klass )
+                    
                     arg_list.append( argname + "=" + default_value )
                 else:
                     arg_list.append( argname  )
@@ -1107,20 +1096,7 @@ class Translator:
         else:
             raise TranslationError("unsupported type (in _for)", node.assign)
 
-        if isinstance(node.list, ast.Name):
-            list_expr = self._name(node.list)
-        elif isinstance(node.list, ast.Getattr):
-            list_expr = self._getattr(node.list)
-        elif isinstance(node.list, ast.CallFunc):
-            list_expr = self._callfunc(node.list, current_klass)
-        elif isinstance(node.list, ast.Subscript):
-            list_expr = self._subscript(node.list, current_klass)
-        elif isinstance(node.list, ast.List):
-            list_expr = self._list(node.list, current_klass)
-        elif isinstance(node.list, ast.Slice):
-            list_expr = self._slice(node.list, current_klass)
-        else:
-            raise TranslationError("unsupported type (in _for)", node.list)
+        list_expr = self.expr(node.list, current_klass)
         
         lhs = "var " + assign_name
         iterator_name = "__" + assign_name
