@@ -315,6 +315,8 @@ class Translator:
                 call_name = "new " + v.node.name
             elif v.node.name == "callable":
                 call_name = "is_function"
+            elif v.node.name == "dict":
+                call_name = "array"
             elif v.node.name == "map":
                 call_name = "pyjslib_map"
             elif v.node.name == "filter":
@@ -1208,7 +1210,7 @@ class Translator:
         return self.expr(node.left, current_klass) + " >> " + self.expr(node.right, current_klass)
 
     def _subscript(self, node, current_klass):
-        if node.flags == "OP_APPLY":
+        if node.flags in ["OP_APPLY", "OP_ASSIGN"]:
             if len(node.subs) == 1:
                 return self.expr(node.expr, current_klass) + "[" + self.expr(node.subs[0], current_klass) + "]"
             else:
