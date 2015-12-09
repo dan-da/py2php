@@ -1329,6 +1329,10 @@ class Translator:
             
         return buf
 
+    def _genexpr(self, node, current_klass):
+        buf = '/* py2php.fixme genexpr unsupported. */'
+        return buf
+
     def _listcomp(self, node, current_klass):
         buf = '/* py2php.fixme listcomp unsupported. */'
         return buf
@@ -1412,13 +1416,16 @@ class Translator:
         elif isinstance(node, ast.IfExp):
             return self._ifexp(node, current_klass)        
         elif isinstance(node, ast.ListComp):
-            return self._listcomp(node, current_klass)        
+            return self._listcomp(node, current_klass)
+        elif isinstance(node, ast.GenExpr):
+            return self._genexpr(node, current_klass)        
         elif isinstance(node, ast.ListCompFor):
             return self._listcompfor(node, current_klass)        
         elif isinstance(node, ast.ListCompIf):
             return self._listcompif(node, current_klass)        
         
         else:
+            print_r( node )
             raise TranslationError("unsupported type (in expr)", node)
 
 
