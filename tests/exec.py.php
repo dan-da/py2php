@@ -6,7 +6,7 @@ $b = '6';
 $c = 7;
 PY2PHP_EVAL_END
 );
-pyjslib_printFunc($a);
+pyjslib_printnl($a);
 eval('$d = 8;');
-eval('pyjslib_printFunc(($c + $d));');
+eval('pyjslib_printnl(($c + $d));');
 

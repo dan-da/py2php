@@ -15,5 +15,5 @@ $l = (1 <= 2) && (2 <= 3) && (3 <= 4);
 $m = ($a == $b);
 $n = ($a == $b) && ($b == $c);
 $o = ($a == $b) && ($b == $c) && ($c > $h);
-pyjslib_printFunc(array($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $o), true);
+pyjslib_printnl(array($a, $b, $c, $d, $e, $f, $g, $h, $i, $j, $k, $l, $m, $o), true);
 

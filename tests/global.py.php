@@ -4,12 +4,12 @@ $g1 = 'hello';
 $g2 = 'world';
 function hello() {
     global $g1, $g2;
-    pyjslib_printFunc(array('hello()', $g1, $g2), true);
+    pyjslib_printnl(array('hello()', $g1, $g2), true);
 }
 class foo {
     function hello() {
         global $g1, $g2;
-        pyjslib_printFunc(array('foo::hello()', $g1, $g2), true);
+        pyjslib_printnl(array('foo::hello()', $g1, $g2), true);
     }
 }
 hello();

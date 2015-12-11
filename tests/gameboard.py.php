@@ -8,10 +8,10 @@ function mul_string($str,$size) {
     return $buf;
 }
 function print_horiz_line($size) {
-    pyjslib_printFunc(mul_string(' --- ', $size));
+    pyjslib_printnl(mul_string(' --- ', $size));
 }
 function print_vert_line($size) {
-    pyjslib_printFunc(mul_string('|    ', ($size + 1)));
+    pyjslib_printnl(mul_string('|    ', ($size + 1)));
 }
 $board_size = 6;
 foreach( pyjslib_range($board_size) as $index ) {

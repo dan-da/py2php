@@ -19,5 +19,5 @@ $a->deposit(100);
 $b->deposit(50);
 $b->withdraw(10);
 $balance = $a->withdraw(10);
-pyjslib_printFunc(array('balance:', $balance), true);
+pyjslib_printnl(array('balance:', $balance), true);
 

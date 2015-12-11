@@ -87,7 +87,7 @@ function pyjslib_range($start, $stop = null, $step = 1) {
     return $arr;
 }
 
-function pyjslib_printWorker($objs, $multi_arg, $depth=1) {
+function pyjslib_printWorker($objs, $nl, $multi_arg, $depth=1) {
     $buf = '';
     if( is_array( $objs ) && $multi_arg && $depth == 1) {
         $cnt = 0;
@@ -95,7 +95,7 @@ function pyjslib_printWorker($objs, $multi_arg, $depth=1) {
             if( $cnt ++ > 0 ) {
                $buf .= " ";
             }
-            $buf .= pyjslib_printWorker( $obj, $multi_arg, $depth + 1 );
+            $buf .= pyjslib_printWorker( $obj, $nl, $multi_arg, $depth + 1 );
         }
     }
     else if( is_bool( $objs )) {
@@ -108,7 +108,7 @@ function pyjslib_printWorker($objs, $multi_arg, $depth=1) {
         $buf = '[';
         $cnt = 0;
         foreach( $objs as $obj ) {
-            $val = pyjslib_printWorker($obj, false, $depth + 1);
+            $val = pyjslib_printWorker($obj, $nl, false, $depth + 1);
             if( $cnt ++ > 0 ) {
                 $buf .= ', ';
             }
@@ -120,14 +120,39 @@ function pyjslib_printWorker($objs, $multi_arg, $depth=1) {
     else {
         $buf = $objs;
     }
-    if( $depth == 1 ) {
-        $buf .= "\n";
+    if( $depth == 1) {
+        $buf .= $nl ? "\n" : " ";
     }
     return $buf;
 }
 
-function pyjslib_printFunc($objs, $multi_arg=false) {
-    echo pyjslib_printWorker($objs, $multi_arg);
+function pyjslib_print($objs, $multi_arg=false) {
+    echo pyjslib_printWorker($objs, false, $multi_arg);
+}
+
+function pyjslib_printnl($objs, $multi_arg=false) {
+    echo pyjslib_printWorker($objs, true, $multi_arg);
+}
+
+function py2php_kwargs_function_call($funcname, $params) {
+    
+   $named = array_shift( $params );
+    
+    $num_ordered = count($params);
+    $count = 1;
+
+    $refFunc = new ReflectionFunction($funcname);
+    foreach( $refFunc->getParameters() as $param ){
+        //invokes ReflectionParameter::__toString
+        if( $count > $num_ordered ) {
+            $name = $param->name;
+            $params[] = @$named[$name] ?: $param->getDefaultValue();
+        }
+        
+        $count ++;
+    }
+    
+    return call_user_func_array($funcname, $params);
 }
    
 ?>

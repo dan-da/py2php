@@ -8,6 +8,6 @@ function firstn($n) {
     }
 }
 foreach( firstn(100) as $n ) {
-    pyjslib_printFunc($n);
+    pyjslib_printnl($n);
 }
 

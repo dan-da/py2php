@@ -20,5 +20,5 @@ function gen_fib($count) {
     }
     return $fib;
 }
-pyjslib_printFunc(gen_fib(10));
+pyjslib_printnl(gen_fib(10));
 

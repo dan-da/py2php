@@ -421,17 +421,21 @@ class Translator:
             else:
                 return call_name + "(" + ", ".join(call_args) + ")"
     
-    def _print(self, node, current_klass):
+    def _print(self, node, current_klass, nl = False):
         buf = ''
         call_args = []
         for ch4 in node.nodes:
             arg = self.expr(ch4, current_klass)
             call_args.append(arg)
+            
+        func = "pyjslib_print"
+        if nl:
+            func = "pyjslib_printnl"
         
         if len(call_args) == 1:
-            buf += self.ind() + "pyjslib_printFunc(" + ''.join(call_args) + ");" + self.eol
+            buf += self.ind() + func + "(" + ''.join(call_args) + ");" + self.eol
         else:
-            buf += self.ind() + "pyjslib_printFunc(array(" + ', '.join(call_args) + "), true);" + self.eol
+            buf += self.ind() + func + "(array(" + ', '.join(call_args) + "), true);" + self.eol
         return buf
         
 
@@ -771,9 +775,9 @@ class Translator:
         elif isinstance(node, ast.Exec):
             buf += self._exec(node, True)
         elif isinstance(node, ast.Printnl):
-            buf += self._print(node, current_klass)
+            buf += self._print(node, current_klass, nl=True)
         elif isinstance(node, ast.Print):
-            buf += self._print(node, current_klass)
+            buf += self._print(node, current_klass, nl=False)
         elif isinstance(node, ast.TryFinally):
             buf += self._tryfinally(node, current_klass)
         elif isinstance(node, ast.TryExcept):
