@@ -175,7 +175,7 @@ class Translator:
     def _varargs_handler(self, node, varargname, arg_names, current_klass):
         
         buf = ''
-        buf += self.ind() + varargname + '= array();' + self.eol
+        buf += self.ind() + varargname + '= [];' + self.eol
         buf += self.ind() + '$arg_list = func_get_args();'  + self.eol
         buf += self.ind() +  'for ($__va_arg = ' + str(len(arg_names)) + '; $__va_arg < func_num_args(); $__va_arg++) {'  + self.eol
         self.depth += 1
@@ -409,11 +409,11 @@ class Translator:
             except ValueError:
                 # Must be a function call ...
                 return ("py2php_kwargs_function_call('"+call_name+"', "
-                                  + "array("+", ".join(['array(' + ', '.join(kwargs) + ')']+call_args)+")"
+                                  + "["+", ".join(['[' + ', '.join(kwargs) + ']']+call_args)+"]"
                                   + ")" )
             else:
                 return ("py2php_kwargs_method_call("+call_this+", '"+method_name+"', "
-                                  + "array("+", ".join(['array(' + ', '.join(kwargs) + ')']+call_args)+")"
+                                  + "["+", ".join(['[' + ', '.join(kwargs) + ']']+call_args)+"]"
                                   + ")")
         else:
             if is_append:
@@ -435,7 +435,7 @@ class Translator:
         if len(call_args) == 1:
             buf += self.ind() + func + "(" + ''.join(call_args) + ");" + self.eol
         else:
-            buf += self.ind() + func + "(array(" + ', '.join(call_args) + "), true);" + self.eol
+            buf += self.ind() + func + "([" + ', '.join(call_args) + "], true);" + self.eol
         return buf
         
 
@@ -1241,7 +1241,7 @@ class Translator:
             inners.append( buf )
         inner = ", ".join(inners)
             
-        return "array(" + inner + ")"
+        return "[" + inner + "]"
 
     def _dict(self, node, current_klass):
         items = []
@@ -1249,7 +1249,7 @@ class Translator:
             key = self.expr(x[0], current_klass)
             value = self.expr(x[1], current_klass)
             items.append("[" + key + ", " + value + "]")
-        return "array(" + ", ".join(items) + ")"
+        return "[" + ", ".join(items) + "]"
     
     def _asstuple(self, node, current_klass):
         return "list(" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + ")"
@@ -1268,7 +1268,7 @@ class Translator:
         return self.expr(node.expr, current_klass) + "->" + node.attrname
 
     def _tuple(self, node, current_klass):
-        return "array(" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + ")"
+        return "[" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "]"
 
     def _slice(self, node, current_klass):
         if node.flags == "OP_APPLY":

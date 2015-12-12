@@ -11,6 +11,6 @@ function info($text1,$text2='World',$spacing=10,$collapse=false) {
 }
 info('hello');
 info('hullo', 'Mars', 12);
-py2php_kwargs_function_call('info', array(array("collapse" => true), 'hey'));
-py2php_kwargs_function_call('info', array(array("spacing" => 15, "text1" => 'hello')));
+py2php_kwargs_function_call('info', [["collapse" => true], 'hey']);
+py2php_kwargs_function_call('info', [["spacing" => 15, "text1" => 'hello']]);
 

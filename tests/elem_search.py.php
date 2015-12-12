@@ -8,7 +8,7 @@ function find($ordered_list,$element_to_find) {
     }
     return false;
 }
-$l = array(2, 4, 6, 8, 10);
+$l = [2, 4, 6, 8, 10];
 pyjslib_printnl(find($l, 5));
 pyjslib_printnl(find($l, 10));
 pyjslib_printnl(find($l, -1));
