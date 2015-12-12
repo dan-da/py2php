@@ -136,7 +136,7 @@ function pyjslib_printnl($objs, $multi_arg=false) {
 
 function py2php_kwargs_function_call($funcname, $params) {
     
-   $named = array_shift( $params );
+    $named = array_shift( $params );
     
     $num_ordered = count($params);
     $count = 1;
@@ -154,5 +154,27 @@ function py2php_kwargs_function_call($funcname, $params) {
     
     return call_user_func_array($funcname, $params);
 }
+
+function py2php_kwargs_method_call( $obj, $method, $params ) {
+    
+    $named = array_shift( $params );
+    
+    $num_ordered = count($params);
+    $count = 1;
+
+    $refFunc = new ReflectionMethod($obj, $method);
+    foreach( $refFunc->getParameters() as $param ){
+        //invokes ReflectionParameter::__toString
+        if( $count > $num_ordered ) {
+            $name = $param->name;
+            $params[] = @$named[$name] ?: $param->getDefaultValue();
+        }
+        
+        $count ++;
+    }
    
-?>
+    $callable = [$obj, $method]; 
+    return call_user_func_array($callable, $params);
+}
+
+

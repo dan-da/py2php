@@ -405,13 +405,15 @@ class Translator:
             return "call_user_func(" + call_name + ", " + ", ".join(call_args) + ")"
             
         elif kwargs:
-            try: call_this, method_name = call_name.rsplit(".", 1)
+            try: call_this, method_name = call_name.rsplit("->", 1)
             except ValueError:
                 # Must be a function call ...
                 return ("py2php_kwargs_function_call('"+call_name+"', "
                                   + "["+", ".join(['[' + ', '.join(kwargs) + ']']+call_args)+"]"
                                   + ")" )
             else:
+                if not call_this[0] == '$':
+                    call_this = "'" + call_this + "'"
                 return ("py2php_kwargs_method_call("+call_this+", '"+method_name+"', "
                                   + "["+", ".join(['[' + ', '.join(kwargs) + ']']+call_args)+"]"
                                   + ")")
