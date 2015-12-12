@@ -296,12 +296,28 @@ class Translator:
     def _continue(self, node, current_klass):
         return self.ind() + "continue;" + self.eol
 
+    def _customcallargs(self, args, position_map, current_klass):
+        
+        cnt = 0
+        newargs = []
+        for a in args:
+            if cnt < len(position_map):
+                phptype = position_map[cnt]
+                arg = self._arg_as_phptype(a, phptype)
+            else:
+                arg = self.expr(a, current_klass)
+            newargs.append(arg)
+            cnt = cnt + 1
+        return newargs
+
 
     def _callfunc(self, v, current_klass):
         #print "_callfunc: " + str(v)
         is_append = False
         is_user_func = False
         is_constructor = False
+        call_args = []
+        
         if isinstance(v.node, ast.Name):
             if v.node.name in self.top_level_functions:
                 call_name = v.node.name
@@ -319,6 +335,7 @@ class Translator:
                 call_name = "array"
             elif v.node.name == "map":
                 call_name = "pyjslib_map"
+                call_args = self._customcallargs(v.args, ['callable'], current_klass)
             elif v.node.name == "filter":
                 call_name = "pyjslib_filter"
             elif v.node.name == "dir":
@@ -342,7 +359,6 @@ class Translator:
             else:
                 # none of the above, so it must be a variable, right?
                 call_name = "$" + v.node.name
-            call_args = []
             #print "call_name: " + call_name
             
         elif isinstance(v.node, ast.Getattr):
@@ -385,21 +401,23 @@ class Translator:
         call_name = strip_py(call_name)
 
         kwargs = []
-        cnt = 0
-        for ch4 in v.args:
-            if isinstance(ch4, ast.Keyword):
-                kwarg = '"' + ch4.name + '"' + " => " + self.expr(ch4.expr, current_klass)
-                kwargs.append(kwarg)
-            else:
-                arg = self.expr(ch4, current_klass)
-                if arg == "$this" and is_constructor and cnt == 0:
-                    continue
-                #print "ARG: " + arg + ', ' + str(ch4)
-                #no_dollar = [ast.Class, ast.Const]
-                if isinstance(ch4, ast.Name):
-                    arg = arg
-                call_args.append(arg)
-            cnt = cnt + 1
+        
+        if len(call_args) == 0:
+            cnt = 0
+            for ch4 in v.args:
+                if isinstance(ch4, ast.Keyword):
+                    kwarg = '"' + ch4.name + '"' + " => " + self.expr(ch4.expr, current_klass)
+                    kwargs.append(kwarg)
+                else:
+                    arg = self.expr(ch4, current_klass)
+                    if arg == "$this" and is_constructor and cnt == 0:
+                        continue
+                    #print "ARG: " + arg + ', ' + str(ch4)
+                    #no_dollar = [ast.Class, ast.Const]
+                    if isinstance(ch4, ast.Name):
+                        arg = arg
+                    call_args.append(arg)
+                cnt = cnt + 1
 
         if is_user_func:
             return "call_user_func(" + call_name + ", " + ", ".join(call_args) + ")"
@@ -441,19 +459,25 @@ class Translator:
         return buf
         
 
-    def _getattr(self, v):
+    def _getattr(self, v, as_callable=False):
         attr_name = v.attrname
         if isinstance(v.expr, ast.Name):
             obj = self._name(v.expr, return_none_for_module=True)
             if obj == None and v.expr.name in self.imported_modules:
-                return v.expr.name+'::'+ "$" + attr_name
+                if as_callable:
+                    return "['" + v.expr.name + "', '" + attr_name + "']"
+                else:
+                    return v.expr.name+'::'+ "$" + attr_name
             scope = "->"
             if v.expr.name in self.top_level_classes or v.expr.name in self.imported_classes:
                 scope = "::"
                 attr_name = "$" + attr_name
-#            if( v.expr.name == 'self' ):
-#                scope = "->"
-            return obj + scope + attr_name
+            if as_callable:
+                if obj[0] != '$':
+                    obj = "'" + obj + "'"
+                return "[" + obj + ", '" + v.attrname + "']"
+            else:
+                return obj + scope + attr_name
         elif isinstance(v.expr, ast.Getattr):
             return self._getattr(v.expr) + "->" + attr_name
         elif isinstance(v.expr, ast.Subscript):
@@ -462,6 +486,21 @@ class Translator:
             return self._callfunc(v.expr, attr_name )
         else:
             raise TranslationError("unsupported type (in _getattr)", v.expr)
+    
+    def _arg_as_phptype(self, node, phptype):
+        if phptype == "string":
+            return "'" + node.name + "'"
+        elif phptype == "callable":
+            if isinstance( node, ast.Name):
+                return "'" + node.name + "'"
+            elif isinstance( node, ast.Getattr):
+                return self._getattr( node, True )
+        elif phptype == "variable":
+            return "$" + node.name
+        elif phptype == "literal":
+            return node.name
+        else:
+            raise TranslationError("unsupported phptype (in _name_as_phptype)", node)
     
     
     def _name(self, v, return_none_for_module=False):

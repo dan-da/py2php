@@ -87,6 +87,32 @@ function pyjslib_range($start, $stop = null, $step = 1) {
     return $arr;
 }
 
+function pyjslib_map($callable) {
+    $done = false;
+    $call_cnt = 0;
+    $results = [];
+    
+    $params = func_get_args();
+    array_shift( $params );
+    
+    while( !$done ) {
+        $func_args = [];
+        $found = false;
+        for( $i = 0; $i < count($params); $i ++ ) {
+            $func_args[] = @$params[$i][$call_cnt];
+            if( count($params[$i]) > $call_cnt + 1 ) {
+                $found = true;
+            }
+        }
+        if( !$found ) {
+            $done = true;
+        }
+        $results[] = call_user_func_array($callable, $func_args);
+        $call_cnt ++;
+    }
+    return $results;
+}
+
 function pyjslib_printWorker($objs, $nl, $multi_arg, $depth=1) {
     $buf = '';
     if( is_array( $objs ) && $multi_arg && $depth == 1) {
@@ -100,6 +126,9 @@ function pyjslib_printWorker($objs, $nl, $multi_arg, $depth=1) {
     }
     else if( is_bool( $objs )) {
         $buf = $objs ? "True" : "False";
+    }
+    else if( is_null( $objs )) {
+        $buf = 'None';
     }
     else if( is_float( $objs )) {
         $buf = (int)$objs;
