@@ -113,6 +113,42 @@ function pyjslib_map($callable) {
     return $results;
 }
 
+function pyjslib_zip() {
+    $params = func_get_args();
+    if (count($params) === 1){ // this case could be probably cleaner
+        // single iterable passed
+        $result = array();
+        foreach ($params[0] as $item){
+            $result[] = array($item);
+        };
+        return $result;
+    };
+    $result = call_user_func_array('array_map',array_merge(array(null),$params));
+    $length = min(array_map('count', $params));
+    return array_slice($result, 0, $length);
+}
+
+function pyjslib_is_assoc($arr)
+{
+    return array_keys($arr) !== range(0, count($arr) - 1);
+}
+
+function pyjslib_dict($arg=null) {
+    if( $arg === null ) {
+        return [];
+    }
+    if( pyjslib_is_assoc( $arg )) {
+        return $arg;
+    }
+    $dict = [];
+    foreach( $arg as $a ) {
+        if( count($a) == 2 ) {
+            $dict[$a[0]] = $a[1];
+        }
+    }
+    return $dict;
+}
+
 function pyjslib_printWorker($objs, $nl, $multi_arg, $depth=1) {
     $buf = '';
     if( is_array( $objs ) && $multi_arg && $depth == 1) {
@@ -165,6 +201,10 @@ function pyjslib_printnl($objs, $multi_arg=false) {
 
 function py2php_kwargs_function_call($funcname, $params) {
     
+    if( $funcname == 'array' || $funcname == 'pyjslib_dict' ) {
+        return $params[0];
+    }
+    
     $named = array_shift( $params );
     
     $num_ordered = count($params);
@@ -175,7 +215,8 @@ function py2php_kwargs_function_call($funcname, $params) {
         //invokes ReflectionParameter::__toString
         if( $count > $num_ordered ) {
             $name = $param->name;
-            $params[] = @$named[$name] ?: $param->getDefaultValue();
+            $default = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+            $params[] = @$named[$name] ?: $default;
         }
         
         $count ++;

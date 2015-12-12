@@ -1,6 +1,9 @@
 #!/usr/bin/php
 <?php
 
+$failed = array();
+$passed = array();
+
 $files = glob('*.py');
 foreach( $files as $file) {
     $phpfile = $file . '.php';
@@ -13,14 +16,25 @@ foreach( $files as $file) {
     $phpout = my_exec( sprintf( "php %s 2> /dev/null", escapeshellarg( $phpfile ) ) );
     
     if( $pyout == $phpout ) {
+        $passed[] = $phpfile;
         echo "Pass";
     }
     else {
+        $failed[] = $phpfile;
         echo "Fail";
     }
     echo "\n";
 }
 
+echo "\n";
+
+echo "Passed: " . count($passed) . "\n";
+echo "Failed: " . count($failed) . "\n";
+if( count($failed)) {
+    foreach($failed as $f) {
+        echo "   --> $f\n";
+    }
+}
 echo "\n";
 
 function my_exec( $cmd ) {

@@ -332,10 +332,12 @@ class Translator:
             elif v.node.name == "callable":
                 call_name = "is_function"
             elif v.node.name == "dict":
-                call_name = "array"
+                call_name = "pyjslib_dict"
             elif v.node.name == "map":
                 call_name = "pyjslib_map"
                 call_args = self._customcallargs(v.args, ['callable'], current_klass)
+            elif v.node.name == "zip":
+                call_name = "pyjslib_zip"
             elif v.node.name == "filter":
                 call_name = "pyjslib_filter"
             elif v.node.name == "dir":
@@ -348,6 +350,7 @@ class Translator:
                 call_name = "pyjslib_int"
             elif v.node.name == "str":
                 call_name = "pyjslib_str"
+                
             elif v.node.name == "range":
                 call_name = "pyjslib_range"
             elif v.node.name == "len":
@@ -1289,7 +1292,7 @@ class Translator:
         for x in node.items:
             key = self.expr(x[0], current_klass)
             value = self.expr(x[1], current_klass)
-            items.append("[" + key + ", " + value + "]")
+            items.append(key + " => " + value)
         return "[" + ", ".join(items) + "]"
     
     def _asstuple(self, node, current_klass):
