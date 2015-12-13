@@ -185,7 +185,7 @@ function pyjslib_printWorker($objs, $nl, $multi_arg, $depth=1) {
     else {
         $buf = $objs;
     }
-    if( $depth == 1) {
+    if( $depth == 1 && $buf[strlen($buf)-1] != "\n") {
         $buf .= $nl ? "\n" : " ";
     }
     return $buf;
@@ -248,4 +248,152 @@ function py2php_kwargs_method_call( $obj, $method, $ordered, $named ) {
     return call_user_func_array($callable, $ordered);
 }
 
+class IOError extends Exception{
+}
+
+class ValueError extends Exception{
+}
+
+
+function pyjslib_open( $name, $mode="r", $buffering=null ) {
+    return new pyjslib_file( $name, $mode, $buffering );
+}
+
+class pyjslib_file implements Iterator {
+    
+    private $fh = false;
+    private $current_line = null;
+
+    // public attributes of python file class.
+    public $closed = true;
+    public $encoding = null;
+    public $errors = [];
+    public $mode = null;
+    public $newlines = null;
+    public $softspace = false;
+    
+    function __construct($name, $mode="r", $buffering=null) {
+        try {
+            $this->fh = fopen($name, $mode);
+            if( !$this->fh ) {
+                throw new Exception("Could not open $name");
+            }
+            $this->closed = false;
+            $this->mode = $mode;
+        }
+        catch( Exception $e ) {
+            throw new IOError( $e->getMessage(), $e->getCode() );
+        }
+    }
+    
+    function close() {
+        if( $this->fh ) {
+            fclose( $this->fh );
+            $this->fh = null;
+            $this->closed = true;
+        }
+    }
+    
+    function flush() {
+        if( !$this->fh ) {
+            throw new ValueError("File is closed.");
+        }
+        fflush( $this->fh );
+    }
+    
+    function fileno() {
+        if( !$this->fh ) {
+            throw new ValueError("File is closed.");
+        }
+        return $this->fh;
+    }
+    
+    function isatty() {
+        if( !$this->fh ) {
+            throw new ValueError("File is closed.");
+        }
+        return posix_isatty( $this->fh );
+    }
+    
+    /* ---
+     * Begin PHP Iterator implementation
+     * ---
+     */
+    function rewind() {
+        fseek( $this->fh, 0 );
+        $this->line = 0;
+    }
+
+    function current() {
+        if( !$this->current_line ) {
+            $this->current_line = fgets( $this->fh );
+        }
+        return $this->current_line;
+    }
+
+    function key() {
+        return $this->line;
+    }
+
+    function next() {
+        $this->current();  // ensure current line has been retrieved.
+        $this->current_line = fgets( $this->fh );
+        $this->line ++;
+        return $this->current_line;
+    }
+
+    function valid() {
+        return $this->fh != false && !feof( $this->fh );
+    }
+    /* ---
+     * End PHP Iterator implementation
+     * ---
+     */
+    
+    function read($size=null) {
+        if( $size !== null) {
+            return fread( $this->fh, $size);
+        }
+        return stream_get_contents( $this->fh );
+    }
+    
+    function readline($size=null) {
+        return fgets( $this->fh, $size );
+    }
+    
+    function readlines($sizehint=null) {
+        $len = 0;
+        $lines = array();
+        while( $line = fgets( $this->fh ) ) {
+            $len += strlen( $line );
+            $lines[] = $line;
+            if( $sizehint && $len >= $sizehint ) {
+                break;
+            }
+        }
+        return $lines;
+    }
+    
+    function seek($offset, $whence=SEEK_SET) {
+        return fseek( $this->fh, $offset, $whence);
+    }
+    
+    function tell() {
+        return ftell($this->fh);
+    }
+    
+    function truncate( $size ) {
+        $rc = ftruncate( $this->fh, $size );
+    }
+    
+    function write( $str ) {
+        fwrite( $this->fh, $str );
+    }
+    
+     function writelines($sequence) {
+        foreach($sequence as $line) {
+            $this->write( $line );
+        }
+     }
+}
 

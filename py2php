@@ -330,6 +330,8 @@ class Translator:
                 call_name = "pyjslib_hash"
             elif v.node.name == "abs":
                 call_name = "abs"
+            elif v.node.name == "open":
+                call_name = "pyjslib_open"
             else:
                 # none of the above, so it must be a variable, right?
                 call_name = "$" + v.node.name
@@ -338,7 +340,7 @@ class Translator:
         elif isinstance(v.node, ast.Getattr):
             attr_name = v.node.attrname
             if isinstance(v.node.expr, ast.Name):
-                call_name = self._name2(v.node.expr, current_klass, attr_name)
+                call_name = self._name2(v.node.expr, current_klass, attr_name, True)
                 call_args = []
             elif isinstance(v.node.expr, ast.Getattr):
                 call_name = self._getattr2(v.node.expr, current_klass, attr_name)
@@ -522,8 +524,12 @@ class Translator:
             return "$" + self._self(v.name)
 
 
-    def _name2(self, v, current_klass, attr_name):
+    def _name2(self, v, current_klass, attr_name, is_call=False):
         obj = v.name
+        
+        dollar = "$"
+        if is_call:
+            dollar = ""
         
         if attr_name == "__init__":
             attr_name = "__construct"
@@ -533,14 +539,14 @@ class Translator:
         elif self.imported_classes.has_key(obj):
             #attr_str = ""
             #if attr_name != "__init__":
-            call_name = obj + "::" + "$" + attr_name
+            call_name = obj + "::" + dollar + attr_name
         elif obj in self.imported_modules:
             # PHP has no concept of modules.
             # This could be using PHP namespaces, in PHP6.
             # For now we just pretend the module is a class.  Often it should be anyway.
-            call_name = obj + "::" + "$" + attr_name
+            call_name = obj + "::" + dollar + attr_name
         elif obj[0] == obj[0].upper():
-            call_name = obj + "::" + "$" + attr_name
+            call_name = obj + "::" + dollar + attr_name
         else:
             call_name = self._name(v) + "->" + attr_name
 
