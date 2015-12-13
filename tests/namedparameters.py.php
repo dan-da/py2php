@@ -11,8 +11,8 @@ function info($text1,$text2='World',$spacing=10,$collapse=false) {
 }
 info('hello');
 info('hullo', 'Mars', 12);
-py2php_kwargs_function_call('info', [["collapse" => true], 'hey']);
-py2php_kwargs_function_call('info', [["spacing" => 15, "text1" => 'hello']]);
+py2php_kwargs_function_call('info', ['hey'], ["collapse" => true]);
+py2php_kwargs_function_call('info', [], ["spacing" => 15,"text1" => 'hello']);
 class foo {
     function info($text1,$text2='World',$spacing=10,$collapse=false) {
         pyjslib_print($text1);
@@ -36,7 +36,7 @@ class foo {
 $f = new foo();
 $f->info('foo.hello');
 $f->info('foo.hullo', 'Mars', 12);
-py2php_kwargs_method_call($f, 'info', [["collapse" => true], 'foo.hey']);
-py2php_kwargs_method_call($f, 'info', [["spacing" => 15, "text1" => 'foo.hello']]);
-py2php_kwargs_method_call('foo', 'staticinfo', [["collapse" => true], 'foo.static.hey']);
+py2php_kwargs_method_call($f, 'info', ['foo.hey'], ["collapse" => true]);
+py2php_kwargs_method_call($f, 'info', [], ["spacing" => 15,"text1" => 'foo.hello']);
+py2php_kwargs_method_call('foo', 'staticinfo', ['foo.static.hey'], ["collapse" => true]);
 

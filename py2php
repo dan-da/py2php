@@ -133,9 +133,15 @@ class Translator:
             default_pos = len(node.argnames) - len(node.defaults)
         else:
             default_pos = 99999999
+        
+        end = 0
+        normal_args = node.argnames
+        if node.varargs != None:
+            end = node.varargs
+            normal_args = node.argnames[:-end]
 
         cnt = 0
-        for argname in node.argnames:
+        for argname in normal_args:
             if( argname != 'self'):   # weed out those silly python 'self' args
                 argname = '$' + argname
                 if cnt >= default_pos:
@@ -148,47 +154,18 @@ class Translator:
                     arg_list.append( argname  )
             cnt = cnt + 1
         
-#       if len(node.defaults):
-#           default_pos = len(arg_names) - len(node.defaults)
-#           if arg_names and arg_names[0] == self.method_self:
-#               default_pos -= 1
-#           for default_node in node.defaults:
-#               if isinstance(default_node, ast.Const):
-#                   default_value = self._const(default_node)
-#               elif isinstance(default_node, ast.Name):
-#                   default_value = self._name(default_node)
-#               elif isinstance(default_node, ast.UnarySub):
-#                   default_value = self._unarysub(default_node, current_klass)
-#               else:
-#                   raise TranslationError("unsupported type (in _method)", default_node)
-#               
-#               default_name = arg_names[default_pos]
-#               default_pos += 1
-#               arg_list.append( "%s=%s" % (default_name, default_value) )
-                
+        if end > 0:
+            varargs = node.argnames[-end:]
+            args = []
+            for arg in varargs:
+                arg_list.append( "...$" + arg )
+        
         return ",".join(arg_list)
     
     def ind(self):
         return "    " * self.depth
         
     
-    def _varargs_handler(self, node, varargname, arg_names, current_klass):
-        
-        buf = ''
-        buf += self.ind() + varargname + '= [];' + self.eol
-        buf += self.ind() + '$arg_list = func_get_args();'  + self.eol
-        buf += self.ind() +  'for ($__va_arg = ' + str(len(arg_names)) + '; $__va_arg < func_num_args(); $__va_arg++) {'  + self.eol
-        self.depth += 1
-        buf += self.ind() + '$args[] = $arg_list[$__va_arg];'  + self.eol
-        self.depth -= 1
-        buf += self.ind() + '}'  + self.eol
-
-        #buf += "    var", varargname, '= new pyjslib_List([]);'
-        #buf += "    for(var __va_arg="+str(len(arg_names))+"; __va_arg < arguments.length; __va_arg++) {"
-        #buf += "        var __arg = arguments[__va_arg];"
-        #buf += "        "+varargname+".append(__arg);"
-        #buf += "    }"
-        return buf
                 
     def _kwargs_parser(self, node, function_name, arg_names, current_klass):
         buf = ''
@@ -219,9 +196,6 @@ class Translator:
             #self._default_args_handler(node, arg_names, current_klass)
             if node.kwargs: arg_names += ["pyjslib_Dict(__kwargs)"]
             buf += self.ind() + "var __r = "+"".join(["[", ", ".join(arg_names), "]"])+";" + self.eol
-            if node.varargs:
-                self._varargs_handler(node, "__args", arg_names, current_klass)
-                buf += self.ind() + "__r.push.apply(__r, __args.getArray())" + self.eol
             buf += self.ind() + "return __r;" + self.eol
             self.depth -= 1
             buf += self.ind() + "};" + self.eol
@@ -249,14 +223,12 @@ class Translator:
         buf += self._doc(node.doc)
         
         #function_args = "(" + ", ".join(declared_arg_names) + ")"
-        function_args = "(" + self._default_args_handler(node, None) + ")"
+        ordered_args = self._default_args_handler(node, None)
+        function_args = "(" + ordered_args + ")"
         buf += self.ind() + "function %s%s {" % (function_name, function_args) + self.eol
             
         self.depth += 1
         
-        if node.varargs:
-            buf += self._varargs_handler(node, varargname, declared_arg_names, None)
-
         for child in node.code:
             buf += self._stmt(child, None)
 
@@ -350,7 +322,6 @@ class Translator:
                 call_name = "pyjslib_int"
             elif v.node.name == "str":
                 call_name = "pyjslib_str"
-                
             elif v.node.name == "range":
                 call_name = "pyjslib_range"
             elif v.node.name == "len":
@@ -422,22 +393,46 @@ class Translator:
                     call_args.append(arg)
                 cnt = cnt + 1
 
-        if is_user_func:
-            return "call_user_func(" + call_name + ", " + ", ".join(call_args) + ")"
+        if v.star_args != None:
+            arg = "..." + self.expr(v.star_args, current_klass)
+            call_args.append( arg )
             
-        elif kwargs:
+        if v.dstar_args != None:
+            dstar_arg = self.expr(v.dstar_args, current_klass)
+            if v.star_args:
+                cargs = self.expr(v.star_args, current_klass)
+            else:
+                cargs = "[" + ",".join( call_args ) + "]"
             try: call_this, method_name = call_name.rsplit("->", 1)
             except ValueError:
                 # Must be a function call ...
                 return ("py2php_kwargs_function_call('"+call_name+"', "
-                                  + "["+", ".join(['[' + ', '.join(kwargs) + ']']+call_args)+"]"
+                                  + cargs + ", " + dstar_arg
                                   + ")" )
             else:
                 if not call_this[0] == '$':
                     call_this = "'" + call_this + "'"
                 return ("py2php_kwargs_method_call("+call_this+", '"+method_name+"', "
-                                  + "["+", ".join(['[' + ', '.join(kwargs) + ']']+call_args)+"]"
+                                  + cargs + ", " + dstar_arg
                                   + ")")
+            
+
+        if is_user_func:
+            return "call_user_func(" + call_name + ", " + ", ".join(call_args) + ")"
+            
+        elif kwargs:
+            cargs = "[" + ",".join( call_args ) + "]"
+            kargs = "[" + ",".join( kwargs ) + "]"
+            try: call_this, method_name = call_name.rsplit("->", 1)
+            except ValueError:
+                # Must be a function call ...
+                return ("py2php_kwargs_function_call('"+call_name+"', "
+                                  + cargs + ", " + kargs + ")" )
+            else:
+                if not call_this[0] == '$':
+                    call_this = "'" + call_this + "'"
+                return ("py2php_kwargs_method_call("+call_this+", '"+method_name+"', "
+                                  + cargs + ", " + kargs + ")" )
         else:
             if is_append:
                 return call_name + "[] = " + ", ".join(call_args)
@@ -743,9 +738,6 @@ class Translator:
         # default arguments
         self._default_args_handler(node, normal_arg_names, current_klass)
         
-        if node.varargs:
-            self._varargs_handler(node, varargname, declared_arg_names, current_klass)
-
         for child in node.code:
             self._stmt(child, current_klass)
 
@@ -1262,7 +1254,6 @@ class Translator:
             if len(node.subs) == 1:
                 return self.expr(node.expr, current_klass) + "[" + self.expr(node.subs[0], current_klass) + "]"
             else:
-                print_r( node )
                 raise TranslationError("must have one sub (in _subscript)", node)
         else:
             raise TranslationError("unsupported flag (in _subscript)", node)
@@ -1346,8 +1337,6 @@ class Translator:
 
         function_args = "(" + self._default_args_handler(node, None) + ")"
         buf += "function %s {" % (function_args) 
-        if node.varargs:
-            buf += self._varargs_handler(node, varargname, declared_arg_names, None)
 
         buf += "return " + self.expr(node.code, None) + ";}"
         return buf
@@ -1458,7 +1447,6 @@ class Translator:
             return self._listcompif(node, current_klass)        
         
         else:
-            print_r( node )
             raise TranslationError("unsupported type (in expr)", node)
 
 

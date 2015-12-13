@@ -199,37 +199,37 @@ function pyjslib_printnl($objs, $multi_arg=false) {
     echo pyjslib_printWorker($objs, true, $multi_arg);
 }
 
-function py2php_kwargs_function_call($funcname, $params) {
+function py2php_kwargs_function_call($funcname, $ordered, $named) {
     
     if( $funcname == 'array' || $funcname == 'pyjslib_dict' ) {
-        return $params[0];
+        return $named;
     }
     
-    $named = array_shift( $params );
-    
-    $num_ordered = count($params);
+    $num_ordered = count($ordered);
     $count = 1;
 
     $refFunc = new ReflectionFunction($funcname);
     foreach( $refFunc->getParameters() as $param ){
+        if( $param->isVariadic() ) {
+            $ordered[$count-1] = $named;
+            break;
+        }
         //invokes ReflectionParameter::__toString
         if( $count > $num_ordered ) {
             $name = $param->name;
             $default = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
-            $params[] = @$named[$name] ?: $default;
+            $ordered[] = @$named[$name] ?: $default;
         }
         
         $count ++;
     }
-    
-    return call_user_func_array($funcname, $params);
+    //var_dump($ordered);
+    return call_user_func_array($funcname, $ordered);
 }
 
-function py2php_kwargs_method_call( $obj, $method, $params ) {
+function py2php_kwargs_method_call( $obj, $method, $ordered, $named ) {
     
-    $named = array_shift( $params );
-    
-    $num_ordered = count($params);
+    $num_ordered = count($ordered);
     $count = 1;
 
     $refFunc = new ReflectionMethod($obj, $method);
@@ -237,14 +237,15 @@ function py2php_kwargs_method_call( $obj, $method, $params ) {
         //invokes ReflectionParameter::__toString
         if( $count > $num_ordered ) {
             $name = $param->name;
-            $params[] = @$named[$name] ?: $param->getDefaultValue();
+            $default = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+            $ordered[] = @$named[$name] ?: $default;
         }
         
         $count ++;
     }
    
     $callable = [$obj, $method]; 
-    return call_user_func_array($callable, $params);
+    return call_user_func_array($callable, $ordered);
 }
 
 
