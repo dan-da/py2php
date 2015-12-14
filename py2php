@@ -471,7 +471,7 @@ class Translator:
                 if as_callable:
                     return "['" + v.expr.name + "', '" + attr_name + "']"
                 else:
-                    return v.expr.name+'::'+ "$" + attr_name
+                    return v.expr.name+'::'+ attr_name
             scope = "->"
             if v.expr.name in self.top_level_classes or v.expr.name in self.imported_classes:
                 scope = "::"

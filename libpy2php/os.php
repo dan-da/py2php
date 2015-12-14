@@ -234,8 +234,9 @@ class os {
     static public function fstat($fd) {
         $info = fstat($fd);
         $obj = new stdClass;
-        foreach($info as $key => $v) {
-            $obj->$key = $v;
+        foreach($arr as $key => $v) {
+            $attr = "st_" . $key;
+            $obj->$attr = $v;
         }
         return $obj;
     }
@@ -271,7 +272,7 @@ class os {
         if( $flags & self::O_WRONLY ) {
             $fl .= 'w';
         }
-        if( $flags & self::O_RDRW ) {
+        if( $flags & self::O_RDWR ) {
             $fl .= 'rw';
         }
         if( $flags & self::O_APPEND ) {
@@ -449,7 +450,8 @@ class os {
         }
         $obj = new stdClass;
         foreach($arr as $key => $v) {
-            $obj->$key = $v;
+            $attr = "st_" . $key;
+            $obj->$attr = $v;
         }
         return $obj;
     }
@@ -470,7 +472,9 @@ class os {
         if( !$dir ) {
             $dir = sys_get_temp_dir() ;
         }
-        return tempnam($dir, $prefix);
+        $name = tempnam($dir, $prefix);
+        unlink($name);
+        return $name;
     }
     
     static function tmpnam() {

@@ -89,6 +89,10 @@ function pyjslib_int($a) {
     return (int)$a;
 }
 
+function pyjslib_str($val) {
+    return (string)$val;
+}
+
 # taken from mochikit: range( [start,] stop[, step] )
 function pyjslib_range($start, $stop = null, $step = 1) {
     if( $stop === null ) {
