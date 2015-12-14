@@ -561,7 +561,9 @@ class Translator:
         if isinstance(v.expr, ast.Getattr):
             call_name = self._getattr2(v.expr, current_klass, v.attrname + "->" + attr_name)
         elif isinstance(v.expr, ast.Name) and v.expr.name in self.imported_modules:
-            call_name = v.attrname
+            call_name = v.expr.name + "::" + v.attrname + "::" + attr_name
+        elif isinstance(v.expr, ast.Name) and v.expr.name + "." + v.attrname in self.imported_modules:
+            call_name = self._import_name(v.expr.name + "." + v.attrname) + "::" + attr_name
         else:
             obj = self.expr(v.expr, current_klass)
             call_name = obj + "->" + v.attrname + "->" + attr_name
@@ -1063,9 +1065,12 @@ class Translator:
     def _yield( self, node, current_klass):
         buf = self.ind() + "yield(" + self.expr(node.value, current_klass) + ");" + self.eol
         return buf
+    
+    def _import_name(self, python_name):
+        return python_name.replace('.', '_')
 
     def _import( self, node):
-        importName = node.names[0][0]
+        importName = self._import_name(node.names[0][0])
         return self.ind() + "require_once( '" + importName + ".php');" + self.eol
 
     def _from(self, node):
