@@ -14,6 +14,24 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+/**
+ * This call makes three things happen:
+ *
+ *   1) a global error handler for php errors that causes an exception to be
+ *      thrown instead of standard php error handling.
+ *
+ *   2) a global exception handler for any exceptions that are somehow not
+ *      caught by the application code.
+ *
+ *   3) error_reporting is set to E_STRICT, so that even notices cause an
+ *      exception to be thrown.  This way we are forced to deal with even
+ *      the minor issues during development, and hopefully fewer issues
+  make it out into the world.
+ */
+require_once( dirname(__FILE__) . DIRECTORY_SEPARATOR . 'strict_mode.php' );
+init_strict_mode();
+
+
 
 # iteration from Bob Ippolito's Iteration in JavaScript
 # pyjs_extend from Kevin Lindsey's Inteheritance Tutorial (http://www.kevlindev.com/tutorials/javascript/inheritance/)
@@ -185,7 +203,7 @@ function pyjslib_printWorker($objs, $nl, $multi_arg, $depth=1) {
     else {
         $buf = $objs;
     }
-    if( $depth == 1 && $buf[strlen($buf)-1] != "\n") {
+    if( $depth == 1 && (!strlen($buf) || $buf[strlen($buf)-1] != "\n") ) {
         $buf .= $nl ? "\n" : " ";
     }
     return $buf;
@@ -272,7 +290,15 @@ class pyjslib_file implements Iterator {
     public $newlines = null;
     public $softspace = false;
     
-    function __construct($name, $mode="r", $buffering=null) {
+    function __construct($name_or_fd, $mode="r", $buffering=null) {
+        if( is_resource($name_or_fd) ) {
+            $this->fh = $name_or_fd;
+            $this->closed = false;
+            $meta = stream_get_meta_data( $name_or_df );
+            $this->mode = $meta['mode'];
+            return;
+        }
+        $name = $name_or_fd;
         try {
             $this->fh = fopen($name, $mode);
             if( !$this->fh ) {
@@ -285,6 +311,8 @@ class pyjslib_file implements Iterator {
             throw new IOError( $e->getMessage(), $e->getCode() );
         }
     }
+
+
     
     function close() {
         if( $this->fh ) {

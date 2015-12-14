@@ -1,5 +1,6 @@
 <?php
-require_once('py2phplib.php');
+set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libpy2php');
+require_once('libpy2php.php');
 require_once( 'os.php');
 $f_in = pyjslib_open('file.py');
 $outfile = '/tmp/file.py.test';

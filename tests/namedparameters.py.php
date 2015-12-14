@@ -1,5 +1,6 @@
 <?php
-require_once('py2phplib.php');
+set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libpy2php');
+require_once('libpy2php.php');
 function info($text1,$text2='World',$spacing=10,$collapse=false) {
     pyjslib_print($text1);
     if (!($collapse)) {
@@ -23,7 +24,7 @@ class foo {
         }
         pyjslib_printnl($text2);
     }
-    function staticinfo($text1,$text2='World',$spacing=10,$collapse=false) {
+    static function staticinfo($text1,$text2='World',$spacing=10,$collapse=false) {
         pyjslib_print($text1);
         if (!($collapse)) {
             foreach( pyjslib_range(1, $spacing) as $i ) {

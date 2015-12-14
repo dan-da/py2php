@@ -84,7 +84,8 @@ class Translator:
         
         buf = ''
         if module_name != "eval":
-            buf += "require_once('py2phplib.php');" + self.eol
+            buf += "set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libpy2php');\n"
+            buf += "require_once('libpy2php.php');" + self.eol
         
         for child in mod.node:
             if isinstance(child, ast.Function):
@@ -201,7 +202,7 @@ class Translator:
             buf += self.ind() + "};" + self.eol
         return buf
         
-    def _function(self, node, local=False):
+    def _function(self, node, local=False, static=False):
         function_name = ''
         buf = ''
         if local: function_name = node.name
@@ -225,7 +226,10 @@ class Translator:
         #function_args = "(" + ", ".join(declared_arg_names) + ")"
         ordered_args = self._default_args_handler(node, None)
         function_args = "(" + ordered_args + ")"
-        buf += self.ind() + "function %s%s {" % (function_name, function_args) + self.eol
+        static_buf = ""
+        if static:
+            static_buf = "static "
+        buf += self.ind() + "%sfunction %s%s {" % (static_buf, function_name, function_args) + self.eol
             
         self.depth += 1
         
@@ -708,7 +712,7 @@ class Translator:
                     elif d.name == "staticmethod":
                         staticmethod = True
 
-        buf += self._function(node, True)
+        buf += self._function(node, True, staticmethod)
         return buf
        
         if staticmethod:

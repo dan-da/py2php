@@ -1,5 +1,6 @@
 <?php
-require_once('py2phplib.php');
+set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libpy2php');
+require_once('libpy2php.php');
 $a = (1 == 1);
 $b = (1 < 2);
 $c = (1 <= 3);
