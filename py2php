@@ -290,7 +290,6 @@ class Translator:
                 arg = self._arg_as_phptype(a, phptype)
             else:
                 arg = self.expr(a, current_klass)
-            print arg
             newargs.append(arg)
             cnt = cnt + 1
         return newargs
@@ -392,7 +391,6 @@ class Translator:
 
         kwargs = []
         
-        print_r(v)
         if len(call_args) == 0:
             cnt = 0
             for ch4 in v.args:
@@ -1344,7 +1342,7 @@ class Translator:
             if node.lower != None:
                 lower = self.expr(node.lower, current_klass)
             if node.upper != None:
-                upper = self.expr(node.upper, current_klass)
+                upper = upper_apply = self.expr(node.upper, current_klass)
                 if  node.lower != None:
                      upper_apply = upper + " - " + lower
                      
