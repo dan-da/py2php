@@ -100,11 +100,11 @@ class os {
     }
     
     static public function getenv($varname, $value=null) {
-        return @$_ENV[$varname] ?: $value;
+        return getenv($varname, $value);
     }
     
     static public function putenv($varname, $value) {
-        $_ENV[$varname] = $value;
+        putenv("$varname=$value");
     }
 
     static public function setegid($egid) {
