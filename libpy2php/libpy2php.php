@@ -93,6 +93,13 @@ function pyjslib_str($val) {
     return (string)$val;
 }
 
+function pyjslib_del_slice(&$list, $from, $to) {
+    for( $i = $from; $i < $to; $i++ ) {
+        unset( $list[$i]);
+    }
+}
+
+
 # taken from mochikit: range( [start,] stop[, step] )
 function pyjslib_range($start, $stop = null, $step = 1) {
     if( $stop === null ) {

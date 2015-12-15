@@ -144,15 +144,19 @@ class Translator:
         cnt = 0
         for argname in normal_args:
             if( argname != 'self'):   # weed out those silly python 'self' args
-                argname = '$' + argname
-                if cnt >= default_pos:
-                    default_node = node.defaults[cnt-default_pos]
-                    
-                    default_value = self.expr( default_node, current_klass )
-                    
-                    arg_list.append( argname + "=" + default_value )
+                if type(argname) in [tuple, list]:
+                    for n in argname:
+                        arg_list.append( '$' + n )
                 else:
-                    arg_list.append( argname  )
+                    argname = '$' + argname
+                    if cnt >= default_pos:
+                        default_node = node.defaults[cnt-default_pos]
+                        
+                        default_value = self.expr( default_node, current_klass )
+                        
+                        arg_list.append( argname + "=" + default_value )
+                    else:
+                        arg_list.append( argname  )
             cnt = cnt + 1
         
         if end > 0:
@@ -160,7 +164,7 @@ class Translator:
             args = []
             for arg in varargs:
                 arg_list.append( "...$" + arg )
-        
+
         return ",".join(arg_list)
     
     def ind(self):
@@ -211,7 +215,11 @@ class Translator:
         argnames = []
         for argname in node.argnames:
             if( argname != 'self'):   # weed out those silly python 'self' args
-                argnames.append( "$" + argname )
+                if type(argname) in [tuple, list]:
+                    for n in argname:
+                        argnames.append( "$" + n )
+                else:
+                    argnames.append( "$" + argname )
         
         arg_names = list(argnames)
         normal_arg_names = list(arg_names)
@@ -282,6 +290,7 @@ class Translator:
                 arg = self._arg_as_phptype(a, phptype)
             else:
                 arg = self.expr(a, current_klass)
+            print arg
             newargs.append(arg)
             cnt = cnt + 1
         return newargs
@@ -359,7 +368,8 @@ class Translator:
                 call_name = self.expr(v.node.expr, current_klass) + "->" + v.node.attrname
                 call_args = []
             else:
-                raise TranslationError("unsupported type (in _callfunc)", v.node.expr)
+                call_name = self.expr(v.node.expr, current_klass) + "->" + v.node.attrname
+                #raise TranslationError("unsupported type (in _callfunc)", v.node.expr)
             if call_name.endswith( "->append"):
                 call_name = call_name.replace( "->append", "")
                 is_append = True
@@ -382,6 +392,7 @@ class Translator:
 
         kwargs = []
         
+        print_r(v)
         if len(call_args) == 0:
             cnt = 0
             for ch4 in v.args:
@@ -499,6 +510,8 @@ class Translator:
                 return "'" + node.name + "'"
             elif isinstance( node, ast.Getattr):
                 return self._getattr( node, True )
+            elif isinstance( node, ast.Lambda):
+                return self._lambda( node, None )
         elif phptype == "variable":
             return "$" + node.name
         elif phptype == "literal":
@@ -661,6 +674,8 @@ class Translator:
                 lines = str(child.expr.value).strip().split("\n")
                 for line in lines:
                     buf += self.ind() + "// " + line.lstrip() + self.eol
+            elif isinstance(child, ast.Discard):
+                buf += self.ind() + self.expr( child.expr, current_klass ) + self.eol;
             elif isinstance(child, ast.Class):
                 buf += self._class(child)
             else:
@@ -1195,6 +1210,7 @@ class Translator:
         elif node.value is None:
             return "null"
         else:
+            return str(node.value)
             raise TranslationError("unsupported type (in _const)", node)
 
     def _unarysub(self, node, current_klass):
@@ -1321,17 +1337,24 @@ class Translator:
         return "[" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "]"
 
     def _slice(self, node, current_klass):
-        if node.flags == "OP_APPLY":
+        if node.flags in ["OP_APPLY", "OP_DELETE"]:
             lower = "null"
             upper = "null"
+            upper_apply = "null"
             if node.lower != None:
                 lower = self.expr(node.lower, current_klass)
             if node.upper != None:
                 upper = self.expr(node.upper, current_klass)
                 if  node.lower != None:
-                     upper = upper + " - " + lower
-                
-            return  "array_slice(" + self.expr(node.expr, current_klass) + ", " + lower + ", " + upper + ")"
+                     upper_apply = upper + " - " + lower
+                     
+            expr_apply = self.expr(node.expr, current_klass) + ", " + lower + ", " + upper_apply
+            expr_del = self.expr(node.expr, current_klass) + ", " + lower + ", " + upper
+                     
+            if node.flags == "OP_APPLY":
+                return  "array_slice(" + expr_apply + ")"
+            elif node.flags == "OP_DELETE":
+                return  "pyjslib_del_slice(" + expr_del + ")"
         else:
             raise TranslationError("unsupported flag (in _slice)", node)
         
@@ -1460,6 +1483,8 @@ class Translator:
             return self._listcompfor(node, current_klass)        
         elif isinstance(node, ast.ListCompIf):
             return self._listcompif(node, current_klass)        
+        elif isinstance(node, ast.AssTuple):
+            return self._asstuple(node, current_klass)
         
         else:
             raise TranslationError("unsupported type (in expr)", node)
