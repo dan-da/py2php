@@ -93,10 +93,36 @@ function pyjslib_str($val) {
     return (string)$val;
 }
 
-function pyjslib_del_slice(&$list, $from, $to) {
-    for( $i = $from; $i < $to; $i++ ) {
+function pyjslib_del_slice(&$list, $from, $to, $step=1) {
+    if( $from <= 0 ) {
+        $from = 0;
+    }
+    if( $to === null ) {
+        $to = count($list);
+    }
+    if( $step <= 0 ) {
+        $step = 1;
+    }
+    for( $i = $from; $i < $to; $i += $step ) {
         unset( $list[$i]);
     }
+}
+
+function pyjslib_array_slice($list, $from, $to, $step=1) {
+    $newlist = [];
+    if( $from <= 0 ) {
+        $from = 0;
+    }
+    if( $to === null ) {
+        $to = count($list);
+    }
+    if( $step <= 0 ) {
+        $step = 1;
+    }
+    for( $i = $from; $i < $to; $i += $step ) {
+        $newlist[] = $list[$i];
+    }
+    return $newlist;
 }
 
 
@@ -198,6 +224,9 @@ function pyjslib_printWorker($objs, $nl, $multi_arg, $depth=1) {
     else if( is_float( $objs )) {
         $buf = (int)$objs;
     }
+    else if( is_string( $objs ) && ($multi_arg && $depth > 2 || (!$multi_arg && $depth > 1) ) ) {
+        $buf = "'$objs'";
+    }
     elseif( is_array( $objs )) {
         $buf = '[';
         $cnt = 0;
@@ -218,6 +247,10 @@ function pyjslib_printWorker($objs, $nl, $multi_arg, $depth=1) {
         $buf .= $nl ? "\n" : " ";
     }
     return $buf;
+}
+
+function pyjslib_repr($obj) {
+    return pyjslib_printWorker($obj, false, false);
 }
 
 function pyjslib_print($objs, $multi_arg=false) {
@@ -429,10 +462,10 @@ class pyjslib_file implements Iterator {
         fwrite( $this->fh, $str );
     }
     
-     function writelines($sequence) {
+    function writelines($sequence) {
         foreach($sequence as $line) {
             $this->write( $line );
         }
-     }
+    }
 }
 

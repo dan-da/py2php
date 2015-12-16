@@ -10,4 +10,9 @@ PY2PHP_EVAL_END
 pyjslib_printnl($a);
 eval('$d = 8;');
 eval('pyjslib_printnl(($c + $d));');
+function myfunc($a,$b) {
+    pyjslib_printnl(($a + $b));
+}
+$code = 'myfunc(1,6);';
+eval($code);
 

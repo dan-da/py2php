@@ -10,3 +10,10 @@ exec( 'd = 8' )
 exec( 'print c + d' )
 
 
+def myfunc(a,b):
+    print a+b
+
+code = 'myfunc(1,6);'
+exec(code)
+
+

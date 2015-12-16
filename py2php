@@ -23,6 +23,8 @@ import compiler
 from compiler import ast
 import os
 import copy
+import codecs
+import locale
 
 # this is the python function used to wrap native javascript
 NATIVE_JS_FUNC_NAME = "PHP"
@@ -82,7 +84,7 @@ class Translator:
         self.depth = 0
         self.eol = "\n"
         
-        buf = ''
+        buf = u''
         if module_name != "eval":
             buf += "set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libpy2php');\n"
             buf += "require_once('libpy2php.php');" + self.eol
@@ -173,7 +175,7 @@ class Translator:
     
                 
     def _kwargs_parser(self, node, function_name, arg_names, current_klass):
-        buf = ''
+        buf = u''
         if len(node.defaults) or node.kwargs:
             default_pos = len(arg_names) - len(node.defaults)
             if arg_names and arg_names[0] == self.method_self:
@@ -208,7 +210,7 @@ class Translator:
         
     def _function(self, node, local=False, static=False):
         function_name = ''
-        buf = ''
+        buf = u''
         if local: function_name = node.name
         else: function_name = strip_py(self.module_prefix) + node.name
             
@@ -250,7 +252,7 @@ class Translator:
     
     
     def _doc(self, node):
-        buf = ''
+        buf = u''
         if node != None and len(node):
             lines = node.strip().split("\n")
             buf += self.ind() + "/**" + self.eol
@@ -264,7 +266,7 @@ class Translator:
         
     
     def _return(self, node, current_klass):
-        buf = ''
+        buf = u''
         expr = self.expr(node.value, current_klass)
         if expr != "null":
             buf += self.ind() + "return " + expr + ";" + self.eol
@@ -290,7 +292,8 @@ class Translator:
                 arg = self._arg_as_phptype(a, phptype)
             else:
                 arg = self.expr(a, current_klass)
-            newargs.append(arg)
+            if arg != None:
+                newargs.append(arg)
             cnt = cnt + 1
         return newargs
 
@@ -342,6 +345,10 @@ class Translator:
                 call_name = "pyjslib_hash"
             elif v.node.name == "abs":
                 call_name = "abs"
+            elif v.node.name == "repr":
+                call_name = "pyjslib_repr"
+            elif v.node.name == "isinstance":
+                call_name = "isinstance"
             elif v.node.name == "open":
                 call_name = "pyjslib_open"
             else:
@@ -379,10 +386,17 @@ class Translator:
             call_name = self._subscript(v.node, current_klass)
             call_args = []
 
+        elif isinstance(v.node, ast.CallFunc):
+            call_name = self._callfunc(v.node, current_klass)
+            call_args = []
+
         elif isinstance(v.node, ast.Lambda):
             call_name = self._lambda(v.node, current_klass)
             call_args = []
             is_user_func = True
+
+        elif isinstance(v.node, ast.Or) or isinstance(v.node, ast.And):
+            call_name = "(" + self.expr(v.node, current_klass) + ")"
 
         else:
             raise TranslationError("unsupported type (in _callfunc)", v.node)
@@ -405,7 +419,8 @@ class Translator:
                     #no_dollar = [ast.Class, ast.Const]
                     if isinstance(ch4, ast.Name):
                         arg = arg
-                    call_args.append(arg)
+                    if( arg != None):
+                        call_args.append(arg)
                 cnt = cnt + 1
 
         if v.star_args != None:
@@ -455,7 +470,7 @@ class Translator:
                 return call_name + "(" + ", ".join(call_args) + ")"
     
     def _print(self, node, current_klass, nl = False):
-        buf = ''
+        buf = u''
         call_args = []
         for ch4 in node.nodes:
             arg = self.expr(ch4, current_klass)
@@ -498,7 +513,8 @@ class Translator:
         elif isinstance(v.expr, ast.CallFunc):
             return self._callfunc(v.expr, attr_name )
         else:
-            raise TranslationError("unsupported type (in _getattr)", v.expr)
+            return self.expr(v.expr, None) + "::" + attr_name
+            # raise TranslationError("unsupported type (in _getattr)", v.expr)
     
     def _arg_as_phptype(self, node, phptype):
         if phptype == "string":
@@ -611,7 +627,7 @@ class Translator:
         
         Much of this work is done in pyjs_extend, is pyjslib.py
         """
-        buf = ''
+        buf = u''
         class_name = strip_py(self.module_prefix) + node.name
         current_klass = Klass(class_name)
         
@@ -634,6 +650,12 @@ class Translator:
                     bases.append( base.name )
             elif isinstance(base, ast.Getattr):
                 bases.append( base.attrname )
+            elif isinstance(base, ast.CallFunc):
+                buf += self.ind() + self.eol
+                buf += self.ind() + "/* py2php : Monkey Patching is not supported in PHP" + self.eol
+                buf += self.ind() + " * " + self.eol
+                buf += self.ind() + self._callfunc(base, None) + self.eol
+                buf += self.ind() + " */" + self.eol + self.eol
             else:
                 raise TranslationError("unsupported type (in _class)", base)
 
@@ -677,7 +699,14 @@ class Translator:
             elif isinstance(child, ast.Class):
                 buf += self._class(child)
             else:
-                raise TranslationError("unsupported type (in _class)", child)
+                # python allows arbitrary statements inside class.  weird!
+                buf += self.eol
+                buf += "/* py2php : python allows arbitrary statements inside class" + self.eol
+                buf += " *          but PHP (sensibly) does not." + self.eol
+                buf += " *          commenting out this code block." + self.eol
+                buf += self._stmt(child, current_klass)
+                buf += " */" + self.eol + self.eol
+                # raise TranslationError("unsupported type (in _class)", child)
         self.depth -= 1
         buf += self.ind() + "}" + self.eol
         return buf
@@ -693,17 +722,33 @@ class Translator:
         return buf
 
     def _exec(self, node, current_klass):
-        output = cStringIO.StringIO()
-        code_in = node.expr.value
-        mod = compiler.parse(code_in)
-        t = Translator("eval", mod, output)
-        code_out = output.getvalue()
-        buf = self.ind() + "eval("
-        if code_out.find("'") == -1:
-            buf += "'" + code_out.strip() + "'"
+        output = StringIO.StringIO()
+
+        if isinstance(node.expr, ast.Name):
+            buf = self.ind() + "eval(" + self.expr(node.expr, current_klass) + ");" + self.eol
         else:
-            buf += " <<< 'PY2PHP_EVAL_END'\n" + code_out.strip() + "\nPY2PHP_EVAL_END\n"
-        buf += ");" + self.eol
+            try:
+                code_in = node.expr.value
+                mod = compiler.parse(code_in)
+                t = Translator("eval", mod, output)
+                code_out = output.getvalue()
+                buf = self.ind() + "eval("
+                if code_out.find("'") == -1:
+                    buf += "'" + code_out.strip() + "'"
+                else:
+                    buf += " <<< 'PY2PHP_EVAL_END'\n" + code_out.strip() + "\nPY2PHP_EVAL_END\n"
+                buf += ");" + self.eol
+            except:
+                buf = self.ind() + "/* py2php : got exception when trying to translate this code" + self.eol
+                buf = self.ind() + " *          using original input string" + self.eol
+                buf = self.ind() + " */" + self.eol
+                if code_in.find("'") == -1:
+                    buf += "'" + code_in.strip() + "'"
+                else:
+                    buf += " <<< 'PY2PHP_EVAL_END'\n" + code_in.strip() + "\nPY2PHP_EVAL_END\n"
+                buf += ");" + self.eol
+                
+            
         return buf
     
     def classattr(self, node, current_klass):
@@ -713,7 +758,7 @@ class Translator:
     def _method(self, node, current_klass, class_name):
         # reset global var scope
         self.method_imported_globals = set()
-        buf = ''
+        buf = u''
         
         arg_names = list(node.argnames)
         
@@ -801,7 +846,7 @@ class Translator:
         return buf
 
     def _stmt(self, node, current_klass):
-        buf = ''
+        buf = u''
         if isinstance(node, ast.Stmt):
             for n in node.nodes:
                 buf += self._stmt(n, current_klass)
@@ -851,6 +896,8 @@ class Translator:
             buf += self._import(node)
         elif isinstance(node, ast.With):
             buf += self._with(node, current_klass)
+        elif isinstance(node, ast.From):
+            buf += self._from(node)
             
         else:
             buf += self.ind() + self.expr( node, current_klass) + ";" + self.eol
@@ -899,7 +946,7 @@ class Translator:
 
     def _tryfinally(self, node, current_klass):
         
-        buf = ''
+        buf = u''
         if( isinstance( node.body, ast.TryExcept ) ):
             buf += self._tryexcept( node.body, current_klass )
         elif( isinstance( node.body, ast.Stmt ) ):
@@ -935,7 +982,7 @@ class Translator:
 
     
     def _assign(self, node, current_klass, top_level = False):
-        buf = ''
+        buf = u''
         if len(node.nodes) != 1:
             tempvar = '__temp'+str(node.lineno)
             tnode = ast.Assign([ast.AssName(tempvar, "OP_ASSIGN", node.lineno)], node.expr, node.lineno)
@@ -957,6 +1004,8 @@ class Translator:
                 lhs = self.ind() + self._getattr(v)
             elif isinstance(v.expr, ast.Subscript):
                 lhs = self.ind() + self._subscript(v.expr, current_klass) + "->" + attr_name
+            elif isinstance(v.expr, ast.CallFunc):
+                lhs = self.ind() + self._callfunc(v.expr, current_klass)
             else:
                 raise TranslationError("unsupported type (in _assign)", v.expr)
             if v.flags == "OP_ASSIGN":
@@ -966,6 +1015,10 @@ class Translator:
 
         elif isinstance(v, ast.AssTuple):
             lhs = self.ind() + self._asstuple(v, current_klass)
+            op = "="
+
+        elif isinstance(v, ast.AssList):
+            lhs = self.ind() + self._asslist(v, current_klass)
             op = "="
     
         elif isinstance(v, ast.AssName):
@@ -987,14 +1040,23 @@ class Translator:
         elif isinstance(v, ast.Subscript):
             if v.flags == "OP_ASSIGN":
                 obj = self.expr(v.expr, current_klass)
-                if len(v.subs) != 1:
-                    raise TranslationError("must have one sub (in _assign)", v)
                 idx = self.expr(v.subs[0], current_klass)
                 value = self.expr(node.expr, current_klass)
-                buf += self.ind() +  obj + "[" + idx + "] = " + value + ";" + self.eol
+                if len(v.subs) == 1:
+                    buf += self.ind() +  obj + "[" + idx + "] = " + value + ";" + self.eol
+                else:
+                    buf += self.ind() +  obj + "[/* py2php : PHP does not support non-scalar array keys */] = " + value + ";" + self.eol
                 return buf
             else:
                 raise TranslationError("unsupported flag (in _assign)", v)
+        elif isinstance(v, ast.Slice):
+            expr = self.expr(v.expr, current_klass)
+            lower = "0" if v.lower == None else self.expr(v.lower, current_klass)
+            upper = "count(" + expr + ")" if v.upper == None else self.expr(v.upper, current_klass)
+            upper = upper if lower == "0" else upper + "-" + lower
+            rhs = self.expr(node.expr, current_klass)
+            buf = self.ind() + "array_splice(" + expr + ", " + lower + ", " + upper + ", " + rhs + ");" + self.eol
+            return buf
         else:
             raise TranslationError("unsupported type (in _assign)", v)
     
@@ -1009,7 +1071,7 @@ class Translator:
         return str
     
     def _discard(self, node, current_klass):
-        buf = ''
+        buf = u''
         if isinstance(node.expr, ast.CallFunc):
             if isinstance(node.expr.node, ast.Name) and node.expr.node.name == NATIVE_JS_FUNC_NAME:
                 if len(node.expr.args) != 1:
@@ -1025,12 +1087,15 @@ class Translator:
                 buf += self.ind() + self._const(node.expr) + self.eol
         elif isinstance(node.expr, ast.Yield):
             buf += self._yield( node.expr, current_klass )
+        elif isinstance(node.expr, ast.Name) and node.expr.name == 'XXX':
+            buf += self.ind() + "// XXX" + self.eol
         else:
-            raise TranslationError("unsupported type (in _discard)", node.expr)
+            buf += self.ind() + self.expr(node.expr, current_klass) + ";" + self.eol
+            # raise TranslationError("unsupported type (in _discard)", node.expr)
         return buf
     
     def _if(self, node, current_klass):
-        buf = ''
+        buf = u''
         for i in range(len(node.tests)):
             test, consequence = node.tests[i]
             if i == 0:
@@ -1049,7 +1114,7 @@ class Translator:
         return buf            
         
     def _if_test(self, keyword, test, consequence, current_klass):
-        buf = ''
+        buf = u''
     
         if test:
             expr = self.expr(test, current_klass)
@@ -1087,7 +1152,7 @@ class Translator:
         return self.ind() + "require_once( '" + importName + ".php');" + self.eol
 
     def _from(self, node):
-        buf = ''
+        buf = u''
         for name in node.names:
             if node.modname == 'pyjamas':
                 self.imported_modules.add(name[0])
@@ -1144,7 +1209,8 @@ class Translator:
     def _for(self, node, current_klass):
         assign_name = ""
         assign_tuple = ""
-        buf = ''
+        buf = u''
+        dollar = "$"
 
         # based on Bob Ippolito's Iteration in Javascript code
         if isinstance(node.assign, ast.AssName):
@@ -1153,16 +1219,8 @@ class Translator:
                 op = "="
         elif isinstance(node.assign, ast.AssTuple):
             op = "="
-            i = 0
-            for child in node.assign:
-                child_name = child.name
-                if assign_name == "":
-                    assign_name = "temp_" + child_name
-
-                assign_tuple += """
-                var %(child_name)s %(op)s %(assign_name)s.__getitem__(%(i)i);
-                """ % locals()
-                i += 1
+            assign_name = self._asstuple(node.assign, current_klass)
+            dollar = ''
         else:
             raise TranslationError("unsupported type (in _for)", node.assign)
 
@@ -1171,7 +1229,7 @@ class Translator:
         lhs = "var " + assign_name
         iterator_name = "__" + assign_name
         
-        buf += self.ind() + "foreach( %(list_expr)s as $%(assign_name)s ) {\n" % locals()
+        buf += self.ind() + "foreach( %(list_expr)s as %(dollar)s%(assign_name)s ) {\n" % locals()
         self.depth += 1
         for node in node.body.nodes:
             buf += self._stmt(node, current_klass)
@@ -1181,7 +1239,7 @@ class Translator:
 
 
     def _while(self, node, current_klass):
-        buf = ''
+        buf = u''
         test = self.expr(node.test, current_klass)
         buf += self.ind() + "while (" + test + ") {" + self.eol
         self.depth += 1
@@ -1197,22 +1255,30 @@ class Translator:
 
     def _const(self, node):
         if isinstance(node.value, int):
-            return str(node.value)
+            return unicode(node.value)
         elif isinstance(node.value, float):
-            return str(node.value)
+            return unicode(node.value)
         elif isinstance(node.value, str):
 #            return "\"" + node.value.encode('string_escape') + "\""
-            buf = node.value.replace( "'", "\\'" )
+            try:
+                val = node.value.decode("unicode-escape", 'backslashreplace')
+            except:
+                val = '?'
+            
+            buf = val.replace( "'", "\\'" )
             buf = buf.replace( "\r", "\\r" )
             return "'" + buf + "'"
         elif node.value is None:
             return "null"
         else:
-            return str(node.value)
+            return unicode(node.value)
             raise TranslationError("unsupported type (in _const)", node)
 
     def _unarysub(self, node, current_klass):
         return "-" + self.expr(node.expr, current_klass)
+
+    def _unaryadd(self, node, current_klass):
+        return "+" + self.expr(node.expr, current_klass)
 
     def _add(self, node, current_klass):
         op = " + "
@@ -1281,14 +1347,18 @@ class Translator:
     def _subscript(self, node, current_klass):
         if node.flags in ["OP_APPLY", "OP_ASSIGN"]:
             if len(node.subs) == 1:
-                return self.expr(node.expr, current_klass) + "[" + self.expr(node.subs[0], current_klass) + "]"
+                if isinstance(node.subs[0], ast.Sliceobj):
+                    return "pyjslib_array_slice(" + self.expr(node.expr, current_klass) + ", " + self.expr(node.subs[0], current_klass) + ")" 
+                else:
+                    return self.expr(node.expr, current_klass) + "[" + self.expr(node.subs[0], current_klass) + "]"
             else:
-                raise TranslationError("must have one sub (in _subscript)", node)
+                return self.expr(node.expr, current_klass) + "[/* py2php : PHP does not support non-scalar array keys */]"
+                # raise TranslationError("must have one sub (in _subscript)", node)
         else:
             raise TranslationError("unsupported flag (in _subscript)", node)
 
     def _subscript_stmt(self, node, current_klass):
-        buf = ''
+        buf = u''
         if node.flags == "OP_DELETE":
             buf += self.ind() + "unset(" + self.expr(node.expr, current_klass) + "[" + self.expr(node.subs[0], current_klass) + "]);" + self.eol
         else:
@@ -1317,9 +1387,12 @@ class Translator:
     
     def _asstuple(self, node, current_klass):
         return "list(" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + ")"
+
+    def _asslist(self, node, current_klass):
+        return "list(" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + ")"
     
     def _assname( self, node, current_klass):
-        buf = ''
+        buf = u''
         var = "$" + node.name
         if node.flags == 'OP_DELETE':
             buf = "unset(" + var + ")"
@@ -1332,7 +1405,7 @@ class Translator:
         return self.expr(node.expr, current_klass) + "->" + node.attrname
 
     def _tuple(self, node, current_klass):
-        return "[" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + "]"
+        return u"[" + u", ".join([self.expr(x, current_klass) for x in node.nodes]) + u"]"
 
     def _slice(self, node, current_klass):
         if node.flags in ["OP_APPLY", "OP_DELETE"]:
@@ -1355,13 +1428,28 @@ class Translator:
                 return  "pyjslib_del_slice(" + expr_del + ")"
         else:
             raise TranslationError("unsupported flag (in _slice)", node)
+
+    def _sliceobj(self, node, current_klass):
+        start = node.nodes[0]
+        stop = node.nodes[1]
+        step = node.nodes[2]
+        
+        lower = self.expr(start, current_klass)
+        upper = self.expr(stop, current_klass)
+        step = self.expr(step, current_klass)
+                
+        return u'' + lower + ", " + upper + ", " + step
         
     def _lambda(self, node, current_klass):
-        buf = ''
+        buf = u''
             
         argnames = []
         for argname in node.argnames:
-            argnames.append( "$" + argname )
+            if isinstance(argname, tuple):
+                for a in argname:
+                    argnames.append( "$" + a )
+            else:
+                argnames.append( "$" + argname )
         
         arg_names = list(argnames)
         normal_arg_names = list(arg_names)
@@ -1386,6 +1474,9 @@ class Translator:
         buf += ", ".join( names ) + ";" + self.eol
             
         return buf
+
+    def _backquote(self, node, current_klass):
+        return "pyjslib_repr(" + self.expr(node.expr, current_klass) + ")"
 
     def _genexpr(self, node, current_klass):
         buf = '/* py2php.fixme genexpr unsupported. */'
@@ -1427,6 +1518,8 @@ class Translator:
             return self._mod(node, current_klass)
         elif isinstance(node, ast.UnarySub):
             return self._unarysub(node, current_klass)
+        elif isinstance(node, ast.UnaryAdd):
+            return self._unaryadd(node, current_klass)
         elif isinstance(node, ast.Not):
             return self._not(node, current_klass)
         elif isinstance(node, ast.Or):
@@ -1469,6 +1562,8 @@ class Translator:
             return self._assattr(node, current_klass)        
         elif isinstance(node, ast.Slice):
             return self._slice(node, current_klass)
+        elif isinstance(node, ast.Sliceobj):
+            return self._sliceobj(node, current_klass)
         elif isinstance(node, ast.Lambda):
             return self._lambda(node, current_klass)        
         elif isinstance(node, ast.IfExp):
@@ -1483,16 +1578,20 @@ class Translator:
             return self._listcompif(node, current_klass)        
         elif isinstance(node, ast.AssTuple):
             return self._asstuple(node, current_klass)
+        elif isinstance(node, ast.Class):
+            return self._class(node)
+        elif isinstance(node, ast.Backquote):
+            return self._backquote(node, current_klass)
         
         else:
             raise TranslationError("unsupported type (in expr)", node)
 
 
 
-import cStringIO
+import StringIO
 
 def translate(file_name, module_name):
-    output = cStringIO.StringIO()
+    output = StringIO.StringIO()
     mod = compiler.parseFile(file_name)
     t = Translator(module_name, mod, output)
     return output.getvalue()
@@ -1657,5 +1756,12 @@ if __name__ == "__main__":
         module_name = sys.argv[2]
     else:
         module_name = None
+
+    # necessary for print unicode to non utf-8 output, eg redirect to file.
+    # python 2.x is crazy.
+    # see: https://wiki.python.org/moin/PrintFails
+    sys.stdout = codecs.getwriter(locale.getpreferredencoding())(sys.stdout);
     print "<?php"
     print translate(file_name, module_name),
+    
+    sys.exit(0)
