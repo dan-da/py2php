@@ -392,6 +392,11 @@ class Translator:
             call_name = self._callfunc(v.node, current_klass)
             call_args = []
 
+        # apparently this will "compile" in python but generate runtime error
+        # TypeError: 'tuple' object is not callable
+        elif isinstance(v.node, ast.Tuple):
+            return self._tuple( v.node, current_klass )
+
         elif isinstance(v.node, ast.Lambda):
             call_name = self._lambda(v.node, current_klass)
             call_args = []
