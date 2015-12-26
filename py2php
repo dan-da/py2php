@@ -1441,9 +1441,11 @@ class Translator:
             raise TranslationError("unsupported flag (in _slice)", node)
 
     def _sliceobj(self, node, current_klass):
+        step = ast.Const(1)
         start = node.nodes[0]
         stop = node.nodes[1]
-        step = node.nodes[2]
+        if len(node.nodes) > 2:
+            step = node.nodes[2]
         
         lower = self.expr(start, current_klass)
         upper = self.expr(stop, current_klass)
