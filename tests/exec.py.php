@@ -16,5 +16,5 @@ function myfunc($a,$b) {
 $code = 'myfunc(1,6);';
 eval($code);
 $f = 'func';
-eval( 'my' . $f . '(2,4);');
+eval('my' . $f . '(2,4);');
 
