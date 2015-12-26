@@ -402,11 +402,14 @@ class Translator:
             call_args = []
             is_user_func = True
 
-        elif isinstance(v.node, ast.Or) or isinstance(v.node, ast.And):
+        else:
+            # python allows some weird stuff as function calls.
+            # examples I've seen in the wild:
+            #     and/or,  multiplication, tuples, etc.
             call_name = "(" + self.expr(v.node, current_klass) + ")"
 
-        else:
-            raise TranslationError("unsupported type (in _callfunc)", v.node)
+        # else:
+        #    raise TranslationError("unsupported type (in _callfunc)", v.node)
          
         call_name = strip_py(call_name)
 
