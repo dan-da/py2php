@@ -16,4 +16,7 @@ def myfunc(a,b):
 code = 'myfunc(1,6);'
 exec(code)
 
+f = 'func'
+exec( 'my' + f + "(2,4);" )
+
 
