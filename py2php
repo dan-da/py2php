@@ -728,9 +728,7 @@ class Translator:
 
         if isinstance(node.expr, ast.Name):
             buf = self.ind() + "eval(" + self.expr(node.expr, current_klass) + ");" + self.eol
-        elif isinstance(node.expr, ast.CallFunc):
-            buf = self.ind() + "eval( " + self.expr( node.expr, current_klass ) + ");" + self.eol
-        else:
+        elif isinstance(node.expr, ast.Const):
             try:
                 code_in = node.expr.value
                 mod = compiler.parse(code_in)
@@ -743,7 +741,6 @@ class Translator:
                     buf += " <<< 'PY2PHP_EVAL_END'\n" + code_out.strip() + "\nPY2PHP_EVAL_END\n"
                 buf += ");" + self.eol
             except:
-                print_r( node )
                 buf = self.ind() + "/* py2php : got exception when trying to translate this code" + self.eol
                 buf = self.ind() + " *          using original input string" + self.eol
                 buf = self.ind() + " */" + self.eol
@@ -752,7 +749,8 @@ class Translator:
                 else:
                     buf += " <<< 'PY2PHP_EVAL_END'\n" + code_in.strip() + "\nPY2PHP_EVAL_END\n"
                 buf += ");" + self.eol
-                
+        else:
+            buf = self.ind() + "eval(" + self.expr( node.expr, current_klass ) + ");" + self.eol
             
         return buf
     
