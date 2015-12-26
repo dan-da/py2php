@@ -1365,6 +1365,9 @@ class Translator:
             else:
                 return self.expr(node.expr, current_klass) + "[/* py2php : PHP does not support non-scalar array keys */]"
                 # raise TranslationError("must have one sub (in _subscript)", node)
+        elif node.flags == "OP_DELETE":
+            # assumption: OP_DELETE always implies a statement.
+            return self._subscript_stmt( node, current_klass )
         else:
             raise TranslationError("unsupported flag (in _subscript)", node)
 
