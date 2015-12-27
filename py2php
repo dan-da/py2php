@@ -327,8 +327,6 @@ class Translator:
                 call_args = self._customcallargs(v.args, ['callable'], current_klass)
             elif v.node.name == "zip":
                 call_name = "pyjslib_zip"
-            elif v.node.name == "filter":
-                call_name = "pyjslib_filter"
             elif v.node.name == "dir":
                 call_name = "pyjslib_dir"
             elif v.node.name == "getattr":
@@ -351,6 +349,9 @@ class Translator:
                 call_name = "isinstance"
             elif v.node.name == "open":
                 call_name = "pyjslib_open"
+            elif v.node.name == "filter":
+                call_args = self._customcallargs(v.args, ['callable'], current_klass)
+                call_name = "pyjslib_filter"
             elif v.node.name in python_builtins:
                 call_name = v.node.name
             else:

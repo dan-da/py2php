@@ -142,6 +142,16 @@ function pyjslib_range($start, $stop = null, $step = 1) {
     return $arr;
 }
 
+function pyjslib_filter($callback, $iterable) {
+    $a = [];
+    foreach( $iterable as $item ) {
+        if( call_user_func( $callback, $item ) ) {
+            $a[] = $item;
+        }
+    }
+    return $a;
+}
+
 function pyjslib_map($callable) {
     $done = false;
     $call_cnt = 0;
