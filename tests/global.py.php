@@ -16,4 +16,9 @@ class foo {
 hello();
 $f = new foo();
 $f->hello();
+function test_globals_builtin() {
+    $g_scope = pyjslib_globals();
+    pyjslib_printnl(['via globals() builtin: ', $g_scope['g1'], $g_scope['g2']], true);
+}
+test_globals_builtin();
 

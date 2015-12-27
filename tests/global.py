@@ -15,3 +15,11 @@ hello()
 
 f = foo()
 f.hello()
+
+
+
+def test_globals_builtin():
+    g_scope = globals()
+    print "via globals() builtin: ", g_scope["g1"], g_scope["g2"]
+    
+test_globals_builtin()

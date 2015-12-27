@@ -152,6 +152,11 @@ function pyjslib_filter($callback, $iterable) {
     return $a;
 }
 
+function pyjslib_globals() {
+    return $GLOBALS;
+}
+
+
 function pyjslib_map($callable) {
     $done = false;
     $call_cnt = 0;

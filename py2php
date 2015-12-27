@@ -349,6 +349,8 @@ class Translator:
                 call_name = "isinstance"
             elif v.node.name == "open":
                 call_name = "pyjslib_open"
+            elif v.node.name == "globals":
+                call_name = "pyjslib_globals"
             elif v.node.name == "filter":
                 call_args = self._customcallargs(v.args, ['callable'], current_klass)
                 call_name = "pyjslib_filter"
