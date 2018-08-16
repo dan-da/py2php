@@ -383,6 +383,15 @@ function pyjslib_genexpr($func) {
     return $func();
 }
 
+function pyjslib_listcomp($func) {
+    $list = [];
+    $generator = $func();
+    foreach( $generator as $item ) {
+        $list[] = $item;
+    }
+    return $list;
+}
+
 class pyjslib_file implements Iterator {
     
     private $fh = false;
