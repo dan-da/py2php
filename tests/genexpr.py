@@ -21,6 +21,9 @@ print sum(x**2 for x in range(10))
 # single conditional
 print sum(x**2 for x in range(10) if x % 2 == 0)
 
+# single not conditional
+print sum(x**2 for x in range(10) if not x % 2 == 0)
+
 # nested for
 for a in ([x, y, z] for x in [1,2,3] for y in "abc" for z in "xyz" ):
     print a

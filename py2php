@@ -1545,7 +1545,7 @@ class Translator:
         return buf
 
     def _genexprif(self, node, current_klass):
-       return "if" + self._compare(node.test, current_klass)
+        return "if(" + self.expr(node.test, current_klass) + ")"
         
     def _listcomp(self, node, current_klass):
         buf = "pyjslib_listcomp( function($__vars) { extract($__vars); "
@@ -1584,8 +1584,7 @@ class Translator:
         return buf
 
     def _listcompif(self, node, current_klass):
-        
-        return "if " + self._compare(node.test, current_klass)
+        return "if(" + self.expr(node.test, current_klass) + ")"
 
     def _with(self, node, current_klass):
         buf = '// py2php.fixme "with" unsupported.' + self.eol

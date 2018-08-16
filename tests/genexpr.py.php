@@ -10,17 +10,18 @@ foreach( pyjslib_foreachlist(pyjslib_genexpr( function($__vars) { extract($__var
 foreach( pyjslib_foreachlist(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist('abc') as $x ) {yield $x;}}, get_defined_vars() )) as $y ) {
     pyjslib_printnl($y);
 }
-pyjslib_printnl(pyjslib_sum(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(4)) as $x ) {if(($x % 2) == 0) yield $x;}}, get_defined_vars() )));
-pyjslib_printnl(pyjslib_sum(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(4)) as $x ) {if(($x % 2) == 0) foreach( pyjslib_foreachlist(pyjslib_range(8)) as $y ) {if(($y % 2) != 0) foreach( pyjslib_foreachlist(pyjslib_range(16)) as $z ) {if(($z % 3) == 0) yield $x;}}}}, get_defined_vars() )));
+pyjslib_printnl(pyjslib_sum(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(4)) as $x ) {if((($x % 2) == 0)) yield $x;}}, get_defined_vars() )));
+pyjslib_printnl(pyjslib_sum(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(4)) as $x ) {if((($x % 2) == 0)) foreach( pyjslib_foreachlist(pyjslib_range(8)) as $y ) {if((($y % 2) != 0)) foreach( pyjslib_foreachlist(pyjslib_range(16)) as $z ) {if((($z % 3) == 0)) yield $x;}}}}, get_defined_vars() )));
 pyjslib_printnl(pyjslib_sum(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(10)) as $x ) {yield pow($x, 2);}}, get_defined_vars() )));
-pyjslib_printnl(pyjslib_sum(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(10)) as $x ) {if(($x % 2) == 0) yield pow($x, 2);}}, get_defined_vars() )));
+pyjslib_printnl(pyjslib_sum(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(10)) as $x ) {if((($x % 2) == 0)) yield pow($x, 2);}}, get_defined_vars() )));
+pyjslib_printnl(pyjslib_sum(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(10)) as $x ) {if(!((($x % 2) == 0))) yield pow($x, 2);}}, get_defined_vars() )));
 foreach( pyjslib_foreachlist(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist([1, 2, 3]) as $x ) {foreach( pyjslib_foreachlist('abc') as $y ) {foreach( pyjslib_foreachlist('xyz') as $z ) {yield [$x, $y, $z];}}}}, get_defined_vars() )) as $a ) {
     pyjslib_printnl($a);
 }
-foreach( pyjslib_foreachlist(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist([1, 2, 3]) as $x ) {foreach( pyjslib_foreachlist([3, 1, 4]) as $y ) {if($x != $y) yield [$x, $y];}}}, get_defined_vars() )) as $a ) {
+foreach( pyjslib_foreachlist(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist([1, 2, 3]) as $x ) {foreach( pyjslib_foreachlist([3, 1, 4]) as $y ) {if(($x != $y)) yield [$x, $y];}}}, get_defined_vars() )) as $a ) {
     pyjslib_printnl($a);
 }
-foreach( pyjslib_foreachlist(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(100)) as $y ) {if(($y % 2) == 0) if(($y % 5) == 0) foreach( pyjslib_foreachlist('ab') as $z ) {yield [$y, $z];}}}, get_defined_vars() )) as $a ) {
+foreach( pyjslib_foreachlist(pyjslib_genexpr( function($__vars) { extract($__vars); foreach( pyjslib_foreachlist(pyjslib_range(100)) as $y ) {if((($y % 2) == 0)) if((($y % 5) == 0)) foreach( pyjslib_foreachlist('ab') as $z ) {yield [$y, $z];}}}, get_defined_vars() )) as $a ) {
     pyjslib_printnl($a);
 }
 $matrix = [[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]];
