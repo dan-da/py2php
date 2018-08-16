@@ -76,7 +76,7 @@ $ php fibonacci.py.php
 ```
 
 The file py2phplib.php contains some PHP functions that emulate python keywords
-such as print, range, etc.  py2js automatically renames these keywords to call
+such as print, range, etc.  py2php automatically renames these keywords to call
 the emulated functions instead.
 
 Look in the tests directory for more examples.
@@ -95,10 +95,10 @@ the argument list.
 
 Python uses + for string concatenation and PHP uses dot (.).
 
-Because python variables are dynamically typed, it is not possible for py2js to
+Because python variables are dynamically typed, it is not possible for py2php to
 know if a given variable represents a string or a number.
 
-py2js attempts to deal with this by:
+py2php attempts to deal with this by:
 
 1) If either side of the expression is a string constant, then use dot operator.
 
