@@ -379,13 +379,13 @@ function pyjslib_open( $name, $mode="r", $buffering=null ) {
     return new pyjslib_file( $name, $mode, $buffering );
 }
 
-function pyjslib_genexpr($func) {
-    return $func();
+function pyjslib_genexpr($func, $vars) {
+    return $func($vars);
 }
 
-function pyjslib_listcomp($func) {
+function pyjslib_listcomp($func, $vars) {
     $list = [];
-    $generator = $func();
+    $generator = $func($vars);
     foreach( $generator as $item ) {
         $list[] = $item;
     }

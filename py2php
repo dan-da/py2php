@@ -1504,9 +1504,9 @@ class Translator:
         return "pyjslib_repr(" + self.expr(node.expr, current_klass) + ")"
 
     def _genexpr(self, node, current_klass):
-        buf = "pyjslib_genexpr( function() {"
+        buf = "pyjslib_genexpr( function($__vars) { extract($__vars); "
         buf += self._genexprcode(node.code, current_klass)
-        buf = buf + "} )"
+        buf = buf + "}, get_defined_vars() )"
         return buf
     
     def _genexprcode(self, node, current_klass):
@@ -1548,15 +1548,12 @@ class Translator:
        return "if" + self._compare(node.test, current_klass)
         
     def _listcomp(self, node, current_klass):
-#        print_r(node)
-#        print node
-        buf = "pyjslib_listcomp( function() {"
+        buf = "pyjslib_listcomp( function($__vars) { extract($__vars); "
         buf += self._listcompfor(node.quals[0], node.expr, node.quals, current_klass)
-        buf = buf + "})"
+        buf = buf + "}, get_defined_vars() )"
         return buf
 
     def _listcompfor(self, node, expr, quals, current_klass):
-#        print_r(node)
         assign_name = ""
         buf = u''
         dollar = '$'

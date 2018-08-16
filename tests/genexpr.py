@@ -38,15 +38,15 @@ for a in ([y,z] for y in range(100) if y % 2 == 0 if y % 5 == 0 for z in "ab"):
 matrix = [ [1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12] ]
 
 # this presently fails because matrix is defined outside generator function.
-#for x in ( (row[i] for row in matrix) for i in range(4)):
-#    for y in x:
-#        print y
+for x in ( (row[i] for row in matrix) for i in range(4)):
+    for y in x:
+        print y
 
 # this presently fails because i is defined in generator function 1, and row[i]
 # is used in generator function 2, where i is undefined.
-#for x in ( (row[i] for row in [ [1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12] ]) for i in range(4)):
-#    for y in x:
-#        print y
+for x in ( (row[i] for row in [ [1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12] ]) for i in range(4)):
+    for y in x:
+        print y
 
 
     
