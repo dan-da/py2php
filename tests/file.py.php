@@ -13,7 +13,7 @@ $f_out->close();
 pyjslib_printnl($f_out->closed);
 pyjslib_printnl('---');
 $f_iter = pyjslib_open('/tmp/file.py.test');
-foreach( $f_iter as $line ) {
+foreach( pyjslib_foreachlist($f_iter) as $line ) {
     pyjslib_print($line);
 }
 pyjslib_printnl('---');

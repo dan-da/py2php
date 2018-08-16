@@ -125,6 +125,49 @@ function pyjslib_array_slice($list, $from, $to, $step=1) {
     return $newlist;
 }
 
+function pyjslib_foreachlist($item) {
+    // In python, chars in a string can be iterated eg for x in "abc"
+    if(is_string($item)) {
+        return str_split($item);
+    }
+    return $item;
+}
+
+function pyjslib_sum(Iterator $list) {
+    if(is_array($list)) {
+        return array_sum($list);
+    }
+    $sum = 0;
+    foreach($list as $val) {
+        $sum += $val;
+    }
+    return $sum;
+}
+
+function pyjslib_min(Iterator $list) {
+    if(is_array($list)) {
+        return array_min($list);
+    }
+    $list->rewind();
+    $min = $list->current();
+    foreach($list as $val) {
+        $min = $val < $min ? $val : $min;
+    }
+    return $min;
+}
+
+function pyjslib_max(Iterator $list) {
+    if(is_array($list)) {
+        return array_max($list);
+    }
+    $list->rewind();
+    $max = $list->current();
+    foreach($list as $val) {
+        $max = $val > $max ? $val : $max;
+    }
+    return $max;
+}
+
 
 # taken from mochikit: range( [start,] stop[, step] )
 function pyjslib_range($start, $stop = null, $step = 1) {
@@ -334,6 +377,10 @@ class ValueError extends Exception{
 
 function pyjslib_open( $name, $mode="r", $buffering=null ) {
     return new pyjslib_file( $name, $mode, $buffering );
+}
+
+function pyjslib_genexpr($func) {
+    return $func();
 }
 
 class pyjslib_file implements Iterator {

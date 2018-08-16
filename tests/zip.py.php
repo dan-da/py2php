@@ -7,8 +7,8 @@ $z = [7, 8, 9];
 $z1 = pyjslib_zip($x, $y, $z);
 $z2 = pyjslib_zip(['one', 'two', 'three'], [1, 2, 3]);
 function print_zip($x) {
-    foreach( $x as $y ) {
-        foreach( $y as $z ) {
+    foreach( pyjslib_foreachlist($x) as $y ) {
+        foreach( pyjslib_foreachlist($y) as $z ) {
             pyjslib_print($z);
         }
     }

@@ -341,6 +341,12 @@ class Translator:
                 call_name = "pyjslib_range"
             elif v.node.name == "len":
                 call_name = "count"
+            elif v.node.name == "sum":
+                call_name = "pyjslib_sum"
+            elif v.node.name == "min":
+                call_name = "pyjslib_min"
+            elif v.node.name == "max":
+                call_name = "pyjslib_max"
             elif v.node.name == "hash":
                 call_name = "pyjslib_hash"
             elif v.node.name == "repr":
@@ -1243,7 +1249,7 @@ class Translator:
         lhs = "var " + assign_name
         iterator_name = "__" + assign_name
         
-        buf += self.ind() + "foreach( %(list_expr)s as %(dollar)s%(assign_name)s ) {\n" % locals()
+        buf += self.ind() + "foreach( pyjslib_foreachlist(%(list_expr)s) as %(dollar)s%(assign_name)s ) {\n" % locals()
         self.depth += 1
         for node in node.body.nodes:
             buf += self._stmt(node, current_klass)
@@ -1498,8 +1504,61 @@ class Translator:
         return "pyjslib_repr(" + self.expr(node.expr, current_klass) + ")"
 
     def _genexpr(self, node, current_klass):
-        buf = '/* py2php.fixme genexpr unsupported. */'
+        buf = "pyjslib_genexpr( function() {"
+        buf += self._genexprcode(node.code, current_klass)
+        buf = buf + "} )"
         return buf
+    
+    def _genexprcode(self, node, current_klass):
+        buf = ""
+        buf += self._genexprfor(node.quals[0], node.expr, node.quals, current_klass)
+        return buf
+    
+    def _genexprfor(self, node, expr, quals, current_klass):
+        assign_name = ""
+        assign_tuple = ""
+        buf = u''
+        dollar = "$"
+
+        # based on Bob Ippolito's Iteration in Javascript code
+        if isinstance(node.assign, ast.AssName):
+            assign_name = node.assign.name
+            if node.assign.flags == "OP_ASSIGN":
+                op = "="
+        elif isinstance(node.assign, ast.AssTuple):
+            op = "="
+            assign_name = self._asstuple(node.assign, current_klass)
+            dollar = ''
+        else:
+            raise TranslationError("unsupported type (in _genexprfor)", node.assign)
+
+        list_expr = self.expr(node.iter, current_klass)
+        
+        lhs = "var " + assign_name
+        iterator_name = "__" + assign_name
+        
+        quals.pop(0)
+        buf += "foreach( pyjslib_foreachlist(%(list_expr)s) as %(dollar)s%(assign_name)s ) {" % locals()
+        if(len(node.ifs) == 1):
+            buf += self._genexprif(node.ifs[0], current_klass)
+            buf += " "
+            if(len(quals)):
+                buf += self._genexprfor(quals[0], expr, quals, current_klass)
+            else:
+                buf += "yield " + self.expr(expr, current_klass) + ";"
+
+        elif(len(node.ifs) > 1):
+            raise TranslationError("Too many ifs (in _genexprfor)", node.ifs)            
+
+        else:        
+            buf += "yield " + self.expr(expr, current_klass) + ";"
+            
+        buf +=  "}"
+        return buf
+
+    def _genexprif(self, node, current_klass):
+       return "if" + self._compare(node.test, current_klass)
+        
 
     def _listcomp(self, node, current_klass):
         buf = '/* py2php.fixme listcomp unsupported. */'
