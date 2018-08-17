@@ -362,7 +362,24 @@ function py2php_kwargs_function_call($funcname, $ordered, $named) {
     
     $num_ordered = count($ordered);
     $count = 1;
-
+    
+    if(strstr($funcname, 'new ')) {
+        list($new, $class) = explode(' ', $funcname);
+        
+        $refFunc = new ReflectionMethod( $class, '__construct');
+        foreach( $refFunc->getParameters() as $param ){
+            //invokes ReflectionParameter::__toString
+            if( $count > $num_ordered ) {
+                $name = $param->name;
+                $default = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
+                $ordered[] = isset($named[$name]) ? $named[$name] : $default;
+            }    
+            $count ++;
+        }
+        return call_user_func_array( [ new ReflectionClass($class),
+                                      'newInstance' ], $ordered);
+    }
+    
     $refFunc = new ReflectionFunction($funcname);
     foreach( $refFunc->getParameters() as $param ){
         if( $param->isVariadic() ) {
@@ -373,7 +390,7 @@ function py2php_kwargs_function_call($funcname, $ordered, $named) {
         if( $count > $num_ordered ) {
             $name = $param->name;
             $default = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
-            $ordered[] = @$named[$name] ?: $default;
+            $ordered[] = isset($named[$name]) ? $named[$name] : $default;
         }
         
         $count ++;
@@ -394,7 +411,7 @@ function py2php_kwargs_method_call( $obj, $parent, $method, $ordered, $named ) {
         if( $count > $num_ordered ) {
             $name = $param->name;
             $default = $param->isDefaultValueAvailable() ? $param->getDefaultValue() : null;
-            $ordered[] = @$named[$name] ?: $default;
+            $ordered[] = isset($named[$name]) ? $named[$name] : $default;
         }
         
         $count ++;

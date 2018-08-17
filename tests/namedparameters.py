@@ -50,6 +50,8 @@ f.info("foo.hey", collapse=True)
 f.info(spacing=15, text1="foo.hello")
 f.info(**kwargs)
 
+fg = foo(text1="kwarg constructor", collapse=False)
+
 foo.staticinfo("foo.static.hey", collapse=True)
 foo.staticinfo(**kwargs)
 
