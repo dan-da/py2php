@@ -660,13 +660,13 @@ class Translator:
 
         bases = []
         base_class = None
-
+        
         for base in node.bases:
             if isinstance(base, ast.Name):
-                if self.imported_classes.has_key(base.name):
-                    bases.append( base.name )
-                else:
-                    bases.append( base.name )
+                basename = base.name
+                if basename == 'object':
+                    basename = 'stdClass'
+                bases.append(basename)
             elif isinstance(base, ast.Getattr):
                 bases.append( base.attrname )
             elif isinstance(base, ast.CallFunc):
