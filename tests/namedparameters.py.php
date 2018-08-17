@@ -14,7 +14,9 @@ info('hello');
 info('hullo', 'Mars', 12);
 py2php_kwargs_function_call('info', ['hey'], ["collapse" => true]);
 py2php_kwargs_function_call('info', [], ["spacing" => 15,"text1" => 'hello']);
-class foo {
+$kwargs = ['text1' => 'silly', 'text2' => 'goose'];
+py2php_kwargs_function_call('info', [], $kwargs);
+class foo extends stdClass {
     function info($text1,$text2='World',$spacing=10,$collapse=false) {
         pyjslib_print($text1);
         if (!($collapse)) {
@@ -37,7 +39,16 @@ class foo {
 $f = new foo();
 $f->info('foo.hello');
 $f->info('foo.hullo', 'Mars', 12);
-py2php_kwargs_method_call($f, 'info', ['foo.hey'], ["collapse" => true]);
-py2php_kwargs_method_call($f, 'info', [], ["spacing" => 15,"text1" => 'foo.hello']);
-py2php_kwargs_method_call('foo', 'staticinfo', ['foo.static.hey'], ["collapse" => true]);
+py2php_kwargs_method_call($f, null, 'info', ['foo.hey'], ["collapse" => true]);
+py2php_kwargs_method_call($f, null, 'info', [], ["spacing" => 15,"text1" => 'foo.hello']);
+py2php_kwargs_method_call($f, null, 'info', [], $kwargs);
+py2php_kwargs_method_call('foo', null, 'staticinfo', ['foo.static.hey'], ["collapse" => true]);
+py2php_kwargs_method_call('foo', null, 'staticinfo', [], $kwargs);
+class foosub extends foo {
+    function __construct() {
+        $kwargs = ['text1' => 'foosub', 'text2' => 'says hello'];
+        py2php_kwargs_method_call($this, 'parent', 'info', [], $kwargs);
+    }
+}
+$fs = new foosub();
 

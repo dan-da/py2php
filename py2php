@@ -304,9 +304,11 @@ class Translator:
         is_user_func = False
         is_constructor = False
         call_args = []
+        omit_call_args = False
+        omit_call_parens = False
         
         python_builtins = ['abs', 'divmod', 'input', 'open', 'staticmethod', 'all', 'enumerate', 'int', 'ord', 'str', 'any', 'eval', 'isinstance', 'pow', 'sum', 'basestring', 'execfile', 'issubclass', 'print', 'super', 'bin', 'file', 'iter', 'property', 'tuple', 'bool', 'filter', 'len', 'range', 'type', 'bytearray', 'float', 'list', 'raw_input', 'unichr', 'callable', 'format', 'locals', 'reduce', 'unicode', 'chr', 'frozenset', 'long', 'reload', 'vars', 'classmethod', 'getattr', 'map', 'repr', 'xrange', 'cmp', 'globals', 'max', 'reversed', 'zip', 'compile', 'hasattr', 'memoryview', 'round', '__import__', 'complex', 'hash', 'min', 'set', 'delattr', 'help', 'next', 'setattr', 'dict', 'hex', 'object', 'slice', 'dir', 'id', 'oct', 'sorted']
-        
+        # print_r(v)
         if isinstance(v.node, ast.Name):
             if v.node.name in self.top_level_functions:
                 call_name = v.node.name
@@ -318,6 +320,10 @@ class Translator:
                 # distinguish between a class and a function when importing
                 # or when calling.  :-(
                 call_name = "new " + v.node.name
+            elif v.node.name == "super":
+                call_name = "parent"
+                omit_call_args = True
+                omit_call_parens = True
             elif v.node.name == "callable":
                 call_name = "is_function"
             elif v.node.name == "dict":
@@ -426,7 +432,7 @@ class Translator:
 
         kwargs = []
         
-        if len(call_args) == 0:
+        if len(call_args) == 0 and omit_call_args == False:
             cnt = 0
             for ch4 in v.args:
                 if isinstance(ch4, ast.Keyword):
@@ -461,9 +467,14 @@ class Translator:
                                   + cargs + ", " + dstar_arg
                                   + ")" )
             else:
+                if call_this == 'parent':
+                    return ("py2php_kwargs_method_call($this, 'parent', '"+method_name+"', "
+                                      + cargs + ", " + dstar_arg
+                                      + ")")
+                    
                 if not call_this[0] == '$':
                     call_this = "'" + call_this + "'"
-                return ("py2php_kwargs_method_call("+call_this+", '"+method_name+"', "
+                return ("py2php_kwargs_method_call("+call_this+", null, '"+method_name+"', "
                                   + cargs + ", " + dstar_arg
                                   + ")")
             
@@ -482,13 +493,15 @@ class Translator:
             else:
                 if not call_this[0] == '$':
                     call_this = "'" + call_this + "'"
-                return ("py2php_kwargs_method_call("+call_this+", '"+method_name+"', "
+                return ("py2php_kwargs_method_call("+call_this+", null, '"+method_name+"', "
                                   + cargs + ", " + kargs + ")" )
         else:
             if is_append:
                 return call_name + "[] = " + ", ".join(call_args)
-            else:
+            elif not omit_call_parens:
                 return call_name + "(" + ", ".join(call_args) + ")"
+            else:
+                return call_name
     
     def _print(self, node, current_klass, nl = False):
         buf = u''

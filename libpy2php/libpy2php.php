@@ -382,12 +382,13 @@ function py2php_kwargs_function_call($funcname, $ordered, $named) {
     return call_user_func_array($funcname, $ordered);
 }
 
-function py2php_kwargs_method_call( $obj, $method, $ordered, $named ) {
+function py2php_kwargs_method_call( $obj, $parent, $method, $ordered, $named ) {
     
     $num_ordered = count($ordered);
     $count = 1;
 
-    $refFunc = new ReflectionMethod($obj, $method);
+    $cls = $parent ? get_parent_class($obj) : $obj;
+    $refFunc = new ReflectionMethod( $cls, $method);
     foreach( $refFunc->getParameters() as $param ){
         //invokes ReflectionParameter::__toString
         if( $count > $num_ordered ) {
