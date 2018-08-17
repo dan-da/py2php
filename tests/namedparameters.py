@@ -18,6 +18,10 @@ info(**kwargs)
 
 
 class foo(object):
+    def __init__(self, text1=None, text2=None, spacing=6, collapse=True):
+        if text1 != None:
+            self.info(text1, text2, spacing, collapse)        
+        
     def info(self, text1, text2="World", spacing=10, collapse=False):
         print text1,
         
@@ -53,7 +57,7 @@ foo.staticinfo(**kwargs)
 class foosub(foo):
     def __init__(self):
         kwargs = {"text1": "foosub", "text2": "says hello"}
-        super(foosub, self).info(**kwargs)
+        super(foosub, self).__init__(**kwargs)
 
 
 fs = foosub()

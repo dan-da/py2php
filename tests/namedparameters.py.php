@@ -17,6 +17,11 @@ py2php_kwargs_function_call('info', [], ["spacing" => 15,"text1" => 'hello']);
 $kwargs = ['text1' => 'silly', 'text2' => 'goose'];
 py2php_kwargs_function_call('info', [], $kwargs);
 class foo extends stdClass {
+    function __construct($text1=null,$text2=null,$spacing=6,$collapse=true) {
+        if (($text1 != null)) {
+            $this->info($text1, $text2, $spacing, $collapse);
+        }
+    }
     function info($text1,$text2='World',$spacing=10,$collapse=false) {
         pyjslib_print($text1);
         if (!($collapse)) {
@@ -47,7 +52,7 @@ py2php_kwargs_method_call('foo', null, 'staticinfo', [], $kwargs);
 class foosub extends foo {
     function __construct() {
         $kwargs = ['text1' => 'foosub', 'text2' => 'says hello'];
-        py2php_kwargs_method_call($this, 'parent', 'info', [], $kwargs);
+        py2php_kwargs_method_call($this, 'parent', '__construct', [], $kwargs);
     }
 }
 $fs = new foosub();

@@ -400,7 +400,7 @@ function py2php_kwargs_method_call( $obj, $parent, $method, $ordered, $named ) {
         $count ++;
     }
    
-    $callable = [$obj, $method]; 
+    $callable = $parent ? [$obj, 'parent::' . $method] : [$obj, $method]; 
     return call_user_func_array($callable, $ordered);
 }
 

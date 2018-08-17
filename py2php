@@ -384,7 +384,10 @@ class Translator:
                 call_name = self._getattr2(v.node.expr, current_klass, attr_name)
                 call_args = []
             elif isinstance(v.node.expr, ast.CallFunc):
-                call_name = self._callfunc(v.node.expr, current_klass) + "->" + v.node.attrname
+                method = v.node.attrname
+                if method == "__init__":
+                    method = "__construct"
+                call_name = self._callfunc(v.node.expr, current_klass) + "->" + method
                 call_args = []
             elif isinstance(v.node.expr, ast.Subscript):
                 call_name = self._subscript(v.node.expr, current_klass) + "->" + v.node.attrname
