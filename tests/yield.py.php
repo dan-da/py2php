@@ -8,7 +8,7 @@ function firstn($n) {
         $num += 1;
     }
 }
-foreach( pyjslib_foreachlist(firstn(100)) as $n ) {
+foreach( pyjslib_list(firstn(100)) as $n ) {
     pyjslib_printnl($n);
 }
 

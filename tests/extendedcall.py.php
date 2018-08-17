@@ -16,7 +16,7 @@ $values2 = ['c' => 10, 'd' => 15];
 $s = py2php_kwargs_function_call('sum2', $values1, $values2);
 function sum3(...$values) {
     $s = 0;
-    foreach( pyjslib_foreachlist($values) as $v ) {
+    foreach( pyjslib_list($values) as $v ) {
         $s = ($s + $v);
     }
     return $s;

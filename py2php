@@ -347,6 +347,8 @@ class Translator:
                 call_name = "pyjslib_min"
             elif v.node.name == "max":
                 call_name = "pyjslib_max"
+            elif v.node.name == "list":
+                call_name = "pyjslib_list"
             elif v.node.name == "hash":
                 call_name = "pyjslib_hash"
             elif v.node.name == "repr":
@@ -1249,7 +1251,7 @@ class Translator:
         lhs = "var " + assign_name
         iterator_name = "__" + assign_name
         
-        buf += self.ind() + "foreach( pyjslib_foreachlist(%(list_expr)s) as %(dollar)s%(assign_name)s ) {\n" % locals()
+        buf += self.ind() + "foreach( pyjslib_list(%(list_expr)s) as %(dollar)s%(assign_name)s ) {\n" % locals()
         self.depth += 1
         for node in node.body.nodes:
             buf += self._stmt(node, current_klass)
@@ -1531,7 +1533,7 @@ class Translator:
         list_expr = self.expr(node.iter, current_klass)
         
         quals.pop(0)
-        buf += "foreach( pyjslib_foreachlist(%(list_expr)s) as %(dollar)s%(assign_name)s ) {" % locals()
+        buf += "foreach( pyjslib_list(%(list_expr)s) as %(dollar)s%(assign_name)s ) {" % locals()
         for if_cond in node.ifs:
             buf += self._genexprif(if_cond, current_klass)
             buf += " "
@@ -1570,7 +1572,7 @@ class Translator:
         list_expr = self.expr(node.list, current_klass)
         
         quals.pop(0)
-        buf += "foreach( pyjslib_foreachlist(%(list_expr)s) as %(dollar)s%(assign_name)s ) {" % locals()
+        buf += "foreach( pyjslib_list(%(list_expr)s) as %(dollar)s%(assign_name)s ) {" % locals()
         for if_cond in node.ifs:
             buf += self._listcompif(if_cond, current_klass)
             buf += " "

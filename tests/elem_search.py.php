@@ -2,7 +2,7 @@
 set_include_path(get_include_path() . PATH_SEPARATOR . dirname(__FILE__) . DIRECTORY_SEPARATOR . 'libpy2php');
 require_once('libpy2php.php');
 function find($ordered_list,$element_to_find) {
-    foreach( pyjslib_foreachlist($ordered_list) as $element ) {
+    foreach( pyjslib_list($ordered_list) as $element ) {
         if (($element == $element_to_find)) {
             return true;
         }

@@ -4,7 +4,7 @@ require_once('libpy2php.php');
 function info($text1,$text2='World',$spacing=10,$collapse=false) {
     pyjslib_print($text1);
     if (!($collapse)) {
-        foreach( pyjslib_foreachlist(pyjslib_range(1, $spacing)) as $i ) {
+        foreach( pyjslib_list(pyjslib_range(1, $spacing)) as $i ) {
             pyjslib_print(' ');
         }
     }
@@ -18,7 +18,7 @@ class foo {
     function info($text1,$text2='World',$spacing=10,$collapse=false) {
         pyjslib_print($text1);
         if (!($collapse)) {
-            foreach( pyjslib_foreachlist(pyjslib_range(1, $spacing)) as $i ) {
+            foreach( pyjslib_list(pyjslib_range(1, $spacing)) as $i ) {
                 pyjslib_print(' ');
             }
         }
@@ -27,7 +27,7 @@ class foo {
     static function staticinfo($text1,$text2='World',$spacing=10,$collapse=false) {
         pyjslib_print($text1);
         if (!($collapse)) {
-            foreach( pyjslib_foreachlist(pyjslib_range(1, $spacing)) as $i ) {
+            foreach( pyjslib_list(pyjslib_range(1, $spacing)) as $i ) {
                 pyjslib_print(' ');
             }
         }
