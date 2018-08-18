@@ -1250,19 +1250,28 @@ class Translator:
         buf = u''
         dollar = "$"
 
+        list_expr = self.expr(node.list, current_klass)
+
+        # python calls iteritems() (2.x) or iter() (3.x)
+        # for iteration over dictionaries, but php doesn't need that.
+        is_dict = False
+        bogus = ['->iteritems()', '->iter()']
+        for needle in bogus:
+            if list_expr.endswith(needle):
+                is_dict = True
+                list_expr = list_expr.replace(needle, "")
+
         # based on Bob Ippolito's Iteration in Javascript code
         if isinstance(node.assign, ast.AssName):
             assign_name = node.assign.name
-            if node.assign.flags == "OP_ASSIGN":
-                op = "="
         elif isinstance(node.assign, ast.AssTuple):
-            op = "="
-            assign_name = self._asstuple(node.assign, current_klass)
+            if is_dict:
+                assign_name = self._asstuple_foreachdict(node.assign, current_klass)
+            else:
+                assign_name = self._asstuple(node.assign, current_klass)
             dollar = ''
         else:
             raise TranslationError("unsupported type (in _for)", node.assign)
-
-        list_expr = self.expr(node.list, current_klass)
         
         lhs = "var " + assign_name
         iterator_name = "__" + assign_name
@@ -1357,8 +1366,11 @@ class Translator:
 
     def _mod(self, node, current_klass):
         if isinstance(node.left, ast.Const) and isinstance(node.left.value, StringType):
-           self.imported_js.add("sprintf.js") # Include the sprintf functionality if it is used
-           return "sprintf("+self.expr(node.left, current_klass) + ", " + self.expr(node.right, current_klass)+")"
+            self.imported_js.add("sprintf.js") # Include the sprintf functionality if it is used
+            if isinstance(node.right, ast.Tuple):
+                return "sprintf("+self.expr(node.left, current_klass) + ", " + self._tuple(node.right, current_klass, brackets=False)+")"
+            else:
+                return "sprintf("+self.expr(node.left, current_klass) + ", " + self.expr(node.right, current_klass)+")"
         return "(" + self.expr(node.left, current_klass) + " % " + self.expr(node.right, current_klass) + ")"
 
     def _invert(self, node, current_klass):
@@ -1425,6 +1437,9 @@ class Translator:
             value = self.expr(x[1], current_klass)
             items.append(key + " => " + value)
         return "[" + ", ".join(items) + "]"
+
+    def _asstuple_foreachdict(self, node, current_klass):
+        return " => ".join([self.expr(x, current_klass) for x in node.nodes])
     
     def _asstuple(self, node, current_klass):
         return "list(" + ", ".join([self.expr(x, current_klass) for x in node.nodes]) + ")"
@@ -1445,8 +1460,11 @@ class Translator:
     def _assattr( self, node, current_klass):
         return self.expr(node.expr, current_klass) + "->" + node.attrname
 
-    def _tuple(self, node, current_klass):
-        return u"[" + u", ".join([self.expr(x, current_klass) for x in node.nodes]) + u"]"
+    def _tuple(self, node, current_klass, brackets=True):
+        if brackets:
+            return u"[" + u", ".join([self.expr(x, current_klass) for x in node.nodes]) + u"]"
+        else:
+            return u", ".join([self.expr(x, current_klass) for x in node.nodes])
 
     def _slice(self, node, current_klass):
         if node.flags in ["OP_APPLY", "OP_DELETE"]:
@@ -1547,7 +1565,7 @@ class Translator:
             raise TranslationError("unsupported type (in _genexprfor)", node.assign)
 
         list_expr = self.expr(node.iter, current_klass)
-        
+                
         quals.pop(0)
         buf += "foreach( pyjslib_list(%(list_expr)s) as %(dollar)s%(assign_name)s ) {" % locals()
         for if_cond in node.ifs:
