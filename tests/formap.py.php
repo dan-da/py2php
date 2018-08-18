@@ -10,4 +10,12 @@ pyjslib_printnl($map2['fname']);
 pyjslib_printnl($map2['lname']);
 pyjslib_printnl($map2['species']);
 pyjslib_printnl($map2['gender']);
+$map2 = [];
+foreach( pyjslib_list($map) as $k => $v ) {
+    $map2[$k] = $v;
+}
+pyjslib_printnl($map2['fname']);
+pyjslib_printnl($map2['lname']);
+pyjslib_printnl($map2['species']);
+pyjslib_printnl($map2['gender']);
 

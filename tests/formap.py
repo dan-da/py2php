@@ -12,3 +12,14 @@ print map2["lname"]
 print map2["species"]
 print map2["gender"]
 
+
+
+map2 = {}
+for k,v in map.items():
+    map2[k] = v
+
+print map2["fname"]
+print map2["lname"]
+print map2["species"]
+print map2["gender"]
+

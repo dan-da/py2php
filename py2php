@@ -1255,7 +1255,7 @@ class Translator:
         # python calls iteritems() (2.x) or iter() (3.x)
         # for iteration over dictionaries, but php doesn't need that.
         is_dict = False
-        bogus = ['->iteritems()', '->iter()']
+        bogus = ['->iteritems()', '->iter()', '->items()']
         for needle in bogus:
             if list_expr.endswith(needle):
                 is_dict = True
