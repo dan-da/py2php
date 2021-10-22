@@ -204,20 +204,20 @@ function pyjslib_max(Iterator $list) {
 }
 
 
-# taken from mochikit: range( [start,] stop[, step] )
-function pyjslib_range($start, $stop = null, $step = 1) {
-    if( $stop === null ) {
+# taken from https://stackoverflow.com/a/69672938/912236
+function pyjslib_range($start, $stop = null, $step = null) {
+    if ($stop === null) {
         $stop = $start;
         $start = 0;
     }
-    if( $stop <= $start && $step < 0 ) {
-        $arr = range( $stop, $start, -$step );
-        array_pop( $arr );
-        return array_reverse( $arr, false );
-    }
-    $arr = range( $start, $stop, $step );
-    array_pop( $arr );
-    return $arr;
+    $step = $step ?? 1;
+    if ($start <= $stop) {
+        for ($i = $start; $i < $stop; $i += $step)
+            yield $i;
+    } else
+        if ($step < 0)
+            for ($i = $start; $i > $stop; $i += $step)
+                yield $i;
 }
 
 function pyjslib_filter($callback, $iterable) {
